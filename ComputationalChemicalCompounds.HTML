@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Molecular Analogy: H₂O (Advanced)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; overflow: hidden; background-color: #000000; color: #e5e7eb; }
+        #container3D { position: fixed; top: 0; left: 0; width: 100%; height: 100%; }
+        .ui-container { position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%); width: 90%; max-width: 500px; z-index: 10; }
+        .ui-panel { background-color: rgba(17, 24, 39, 0.75); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 0.75rem; padding: 1.5rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2); transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out; transform-origin: bottom center; }
+        .ui-panel.hidden { transform: translateX(-50%) scale(0.95) translateY(20px); opacity: 0; pointer-events: none; }
+        #instructions { position: fixed; top: 1.5rem; left: 1.5rem; color: rgba(255,255,255,0.4); font-size: 0.875rem; z-index: 5; pointer-events: none; }
+        .toggle-label, .slider-label { display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+        .toggle-checkbox { display: none; }
+        .toggle-switch { position: relative; display: inline-block; width: 40px; height: 24px; background-color: #4b5563; border-radius: 9999px; transition: background-color 0.2s; }
+        .toggle-switch::after { content: ''; position: absolute; width: 18px; height: 18px; border-radius: 50%; background-color: white; top: 3px; left: 3px; transition: transform 0.2s; }
+        .toggle-checkbox:checked + .toggle-switch { background-color: #3b82f6; }
+        .toggle-checkbox:checked + .toggle-switch::after { transform: translateX(16px); }
+        input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 8px; background: #4b5563; border-radius: 9999px; outline: none; transition: opacity .2s; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; background: #ffffff; cursor: pointer; border-radius: 50%; border: 2px solid #3b82f6;}
+        input[type="range"]::-moz-range-thumb { width: 20px; height: 20px; background: #ffffff; cursor: pointer; border-radius: 50%; border: 2px solid #3b82f6; }
+    </style>
+</head>
+<body>
+
+    <div id="container3D"></div>
+    <div id="instructions">Click & Drag: Rotate | Scroll: Zoom | Drag H Nuclei: Interact</div>
+
+    <div class="ui-container">
+        <div id="ui-panel" class="ui-panel">
+            <h1 class="text-xl font-bold text-white text-center">Computational Analogy: H₂O</h1>
+            <div class="flex justify-center items-center gap-4 mt-4">
+                <button id="formBtn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-lg transition duration-300">Form Molecule</button>
+                <button id="resetBtn" class="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-4 rounded-lg transition duration-300">Reset</button>
+            </div>
+            <div id="angleDisplay" class="mt-4 text-lg font-mono text-green-400 h-6 text-center"></div>
+            <hr class="border-gray-600 my-4">
+            <div class="space-y-4">
+                <label class="toggle-label text-sm text-gray-300"><span>Show Nuclei</span><input type="checkbox" id="showNucleiToggle" class="toggle-checkbox" checked><span class="toggle-switch"></span></label>
+                <label class="toggle-label text-sm text-gray-300"><span>Visualize Bonds</span><input type="checkbox" id="showBondsToggle" class="toggle-checkbox" checked><span class="toggle-switch"></span></label>
+                <div>
+                     <label class="slider-label text-sm text-gray-300 mb-2"><span>Particle Density</span><span id="particleCountLabel">15000</span></label>
+                     <input type="range" id="particleCountSlider" min="1000" max="30000" value="15000" step="1000">
+                     <p class="text-xs text-gray-500 text-center mt-1">Changes require simulation reset.</p>
+                </div>
+            </div>
+        </div>
+        <button id="toggleUiBtn" class="absolute -top-4 right-1/2 translate-x-1/2 bg-blue-600 rounded-full p-2 shadow-lg hover:bg-blue-500 transition">
+             <svg id="ui-icon" xmlns="http://www.w.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
+        </button>
+    </div>
+
+    <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/" } }</script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { DragControls } from 'three/addons/controls/DragControls.js';
+
+        let scene, camera, renderer, orbitControls, dragControls;
+        let particles, particleSystem, velocities, particleColors;
+        let attractors = [], lonePairs = [];
+        let attractorMeshes = [];
+        let simulationActive = false;
+        let userIsDragging = false;
+        let showBonds = true;
+
+        let NUM_PARTICLES = 15000;
+        const CORE_ELECTRON_COUNT = 200; // ~2% of initial particles, represents 2 electrons
+        const PARTICLE_DAMPING = 0.92;
+        const ATTRACTOR_DAMPING = 0.90;
+
+        const VALENCE_COLOR = new THREE.Color(0x7df9ff);
+        const CORE_COLOR = new THREE.Color(0xff4136); // Red
+        const BOND_COLOR = new THREE.Color(0xfef08a); // Yellow
+
+        function init() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.set(0, 1.5, 4);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.getElementById('container3D').appendChild(renderer.domElement);
+
+            orbitControls = new OrbitControls(camera, renderer.domElement);
+            orbitControls.enableDamping = true;
+
+            // --- Attractors (Nuclei) Setup ---
+            const attractorData = [
+                { name: 'O', color: 0xff4136, mass: 16, amplitude: 1.8, pos: new THREE.Vector3() },
+                { name: 'H1', color: 0xffffff, mass: 1, amplitude: 1.0, pos: new THREE.Vector3() },
+                { name: 'H2', color: 0xffffff, mass: 1, amplitude: 1.0, pos: new THREE.Vector3() }
+            ];
+            
+            attractorData.forEach(data => {
+                attractors.push({ ...data, vel: new THREE.Vector3() });
+                const mesh = new THREE.Mesh(
+                    new THREE.SphereGeometry(data.name === 'O' ? 0.1 : 0.06, 32, 32),
+                    new THREE.MeshStandardMaterial({ color: data.color, roughness: 0.5 })
+                );
+                scene.add(mesh);
+                attractorMeshes.push(mesh);
+            });
+            
+            // --- Lone Pair Pseudo-Attractors ---
+            // These exert force but are not visible and don't attract the particle cloud
+            lonePairs.push({ pos: new THREE.Vector3(), mass: 0.1, vel: new THREE.Vector3() });
+            lonePairs.push({ pos: new THREE.Vector3(), mass: 0.1, vel: new THREE.Vector3() });
+
+            // --- Particle System Setup ---
+            reinitParticles(NUM_PARTICLES);
+
+            // --- Lighting ---
+            scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+            const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
+            dirLight.position.set(5, 5, 5);
+            scene.add(dirLight);
+
+            // --- Controls ---
+            const draggableObjects = [attractorMeshes[1], attractorMeshes[2]]; // H1 and H2
+            dragControls = new DragControls(draggableObjects, camera, renderer.domElement);
+            dragControls.addEventListener('dragstart', () => { userIsDragging = true; orbitControls.enabled = false; });
+            dragControls.addEventListener('dragend', () => { userIsDragging = false; orbitControls.enabled = true; });
+            dragControls.addEventListener('drag', (event) => {
+                 // Keep dragged atoms on the XY plane for simplicity
+                event.object.position.z = 0;
+            });
+            
+            setupUI();
+            resetSimulation();
+            animate();
+        }
+        
+        function reinitParticles(count) {
+            if (particleSystem) {
+                scene.remove(particleSystem);
+                particleSystem.geometry.dispose();
+                particleSystem.material.dispose();
+            }
+            NUM_PARTICLES = count;
+            const geom = new THREE.BufferGeometry();
+            const positions = new Float32Array(NUM_PARTICLES * 3);
+            velocities = new Float32Array(NUM_PARTICLES * 3);
+            particleColors = new Float32Array(NUM_PARTICLES * 3);
+            
+            for (let i = 0; i < NUM_PARTICLES; i++) {
+                VALENCE_COLOR.toArray(particleColors, i * 3);
+            }
+
+            geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geom.setAttribute('color', new THREE.BufferAttribute(particleColors, 3));
+            
+            const material = new THREE.PointsMaterial({ size: 0.012, vertexColors: true, blending: THREE.AdditiveBlending, transparent: true, opacity: 0.65 });
+            particleSystem = new THREE.Points(geom, material);
+            scene.add(particleSystem);
+            resetSimulation(); // Reset positions after reinitialization
+        }
+
+
+        function waveFunction(pos, attractor) {
+            const r = pos.distanceTo(attractor.pos);
+            const k = 5.0; 
+            if (r < 0.01) return attractor.amplitude;
+            return attractor.amplitude * Math.cos(k * r) / r;
+        }
+
+        function updateAttractorPhysics() {
+            if (!simulationActive || userIsDragging) return;
+            const allAtoms = [...attractors, ...lonePairs];
+
+            // Update lone pair positions to be tetrahedral relative to O and H's
+            const [o, h1, h2] = attractors;
+            const oh1 = new THREE.Vector3().subVectors(h1.pos, o.pos).normalize();
+            const oh2 = new THREE.Vector3().subVectors(h2.pos, o.pos).normalize();
+            const bisector = new THREE.Vector3().addVectors(oh1, oh2).normalize();
+            const cross = new THREE.Vector3().crossVectors(oh1, oh2).normalize();
+            const lonePairBase = new THREE.Vector3().subVectors(o.pos, bisector.multiplyScalar(0.6));
+            lonePairs[0].pos.copy(lonePairBase).add(cross.clone().multiplyScalar(0.7));
+            lonePairs[1].pos.copy(lonePairBase).sub(cross.clone().multiplyScalar(0.7));
+
+            // Repulsive and attractive forces between nuclei
+            for (let i = 0; i < allAtoms.length; i++) {
+                for (let j = i + 1; j < allAtoms.length; j++) {
+                    const a1 = allAtoms[i], a2 = allAtoms[j];
+                    const direction = new THREE.Vector3().subVectors(a1.pos, a2.pos);
+                    const distanceSq = direction.lengthSq();
+                    if (distanceSq > 1e-4) {
+                        // Stronger repulsion for lone pairs vs H
+                        let isLonePairInteraction = (i >= attractors.length || j >= attractors.length) && (i > 0 && j > 0);
+                        const forceMag = (isLonePairInteraction ? 0.0018 : 0.0008) / distanceSq;
+                        const force = direction.normalize().multiplyScalar(forceMag);
+                        a1.vel.add(force.clone().divideScalar(a1.mass));
+                        a2.vel.sub(force.clone().divideScalar(a2.mass));
+                    }
+                }
+            }
+            attractors.forEach(a => { a.vel.multiplyScalar(ATTRACTOR_DAMPING); a.pos.add(a.vel); });
+        }
+        
+        function updateParticlePhysics() {
+            if (!simulationActive) return;
+            const posAttr = particleSystem.geometry.getAttribute('position');
+            const colAttr = particleSystem.geometry.getAttribute('color');
+            const p = new THREE.Vector3();
+            const [oxygen, h1, h2] = attractors;
+
+            for (let i = 0; i < NUM_PARTICLES; i++) {
+                p.fromBufferAttribute(posAttr, i);
+                let totalWave = 0;
+                const gradient = new THREE.Vector3();
+                const epsilon = 0.01;
+                
+                attractors.forEach(a => { // Note: Lone pairs do not attract particles
+                    const baseWave = waveFunction(p, a);
+                    totalWave += baseWave;
+                    gradient.x += (waveFunction(p.clone().add({x:epsilon, y:0, z:0}), a) - baseWave) / epsilon;
+                    gradient.y += (waveFunction(p.clone().add({x:0, y:epsilon, z:0}), a) - baseWave) / epsilon;
+                    gradient.z += (waveFunction(p.clone().add({x:0, y:0, z:epsilon}), a) - baseWave) / epsilon;
+                });
+                
+                let forceMultiplier = -0.003 * Math.tanh(totalWave);
+                // Core electron logic
+                if (i < CORE_ELECTRON_COUNT) {
+                    forceMultiplier *= (1 + 20 / (p.distanceToSquared(oxygen.pos) + 0.1));
+                    CORE_COLOR.toArray(particleColors, i * 3);
+                } else {
+                     // Bonding region logic
+                    const vec_O_H1 = new THREE.Vector3().subVectors(h1.pos, oxygen.pos);
+                    const vec_O_p = new THREE.Vector3().subVectors(p, oxygen.pos);
+                    const proj1 = vec_O_p.dot(vec_O_H1) / vec_O_H1.lengthSq();
+                    const distSq1 = vec_O_p.clone().addScaledVector(vec_O_H1, -proj1).lengthSq();
+
+                    const vec_O_H2 = new THREE.Vector3().subVectors(h2.pos, oxygen.pos);
+                    const proj2 = vec_O_p.dot(vec_O_H2) / vec_O_H2.lengthSq();
+                    const distSq2 = vec_O_p.clone().addScaledVector(vec_O_H2, -proj2).lengthSq();
+
+                    if (showBonds && ((proj1 > 0 && proj1 < 1 && distSq1 < 0.05) || (proj2 > 0 && proj2 < 1 && distSq2 < 0.05))) {
+                         BOND_COLOR.toArray(particleColors, i * 3);
+                    } else {
+                         VALENCE_COLOR.toArray(particleColors, i * 3);
+                    }
+                }
+                
+                const ix = i * 3;
+                velocities[ix] += gradient.x * forceMultiplier;
+                velocities[ix+1] += gradient.y * forceMultiplier;
+                velocities[ix+2] += gradient.z * forceMultiplier;
+                velocities[ix] *= PARTICLE_DAMPING;
+                velocities[ix+1] *= PARTICLE_DAMPING;
+                velocities[ix+2] *= PARTICLE_DAMPING;
+                posAttr.setXYZ(i, p.x + velocities[ix], p.y + velocities[ix+1], p.z + velocities[ix+2]);
+            }
+            posAttr.needsUpdate = true;
+            colAttr.needsUpdate = true;
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            // Sync attractor data with mesh positions, especially after user drag
+            if (userIsDragging) {
+                attractors[1].pos.copy(attractorMeshes[1].position);
+                attractors[2].pos.copy(attractorMeshes[2].position);
+                attractors[1].vel.set(0,0,0);
+                attractors[2].vel.set(0,0,0);
+            }
+
+            updateAttractorPhysics();
+            updateParticlePhysics();
+            attractors.forEach((a, i) => attractorMeshes[i].position.copy(a.pos));
+            
+            const totalVelSq = attractors.reduce((sum, a) => sum + a.vel.lengthSq(), 0);
+            if (simulationActive && totalVelSq < 1e-7 && !userIsDragging) {
+                const [o, h1, h2] = attractors;
+                const v1 = new THREE.Vector3().subVectors(h1.pos, o.pos);
+                const v2 = new THREE.Vector3().subVectors(h2.pos, o.pos);
+                const angleDeg = THREE.MathUtils.radToDeg(v1.angleTo(v2));
+                document.getElementById('angleDisplay').textContent = `Stable Angle: ${angleDeg.toFixed(1)}°`;
+            } else if (simulationActive) {
+                document.getElementById('angleDisplay').textContent = 'System settling...';
+            }
+
+            orbitControls.update();
+            renderer.render(scene, camera);
+        }
+
+        function setupUI() {
+            const uiPanel = document.getElementById('ui-panel'), toggleUiBtn = document.getElementById('toggleUiBtn'), uiIcon = document.getElementById('ui-icon');
+            const particleCountSlider = document.getElementById('particleCountSlider');
+            const particleCountLabel = document.getElementById('particleCountLabel');
+
+            document.getElementById('formBtn').addEventListener('click', () => { if (!simulationActive) { resetSimulation(); simulationActive = true; } });
+            document.getElementById('resetBtn').addEventListener('click', resetSimulation);
+            toggleUiBtn.addEventListener('click', () => {
+                const isHidden = uiPanel.classList.toggle('hidden');
+                uiIcon.innerHTML = isHidden ? `<path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" />` : `<path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />`;
+            });
+            document.getElementById('showNucleiToggle').addEventListener('change', (e) => { attractorMeshes.forEach(mesh => mesh.visible = e.target.checked); });
+            document.getElementById('showBondsToggle').addEventListener('change', (e) => { showBonds = e.target.checked; });
+            particleCountSlider.addEventListener('input', (e) => { particleCountLabel.textContent = e.target.value; });
+            particleCountSlider.addEventListener('change', (e) => { reinitParticles(parseInt(e.target.value)); });
+        }
+        
+        function resetSimulation() {
+            simulationActive = false;
+            document.getElementById('angleDisplay').textContent = '';
+            attractors[0].pos.set(0, 0, 0); 
+            attractors[1].pos.set(0.5, 0.7, 0); 
+            attractors[2].pos.set(-0.8, -0.4, 0);
+            attractors.forEach(a => a.vel.set(0,0,0));
+            
+            const posAttr = particleSystem.geometry.getAttribute('position');
+            for (let i = 0; i < NUM_PARTICLES; i++) {
+                posAttr.setXYZ(i, (Math.random()-0.5)*4, (Math.random()-0.5)*4, (Math.random()-0.5)*4);
+                const ix = i * 3; velocities[ix] = velocities[ix+1] = velocities[ix+2] = 0;
+            }
+            posAttr.needsUpdate = true;
+        }
+
+        init();
+    </script>
+</body>
+</html>
