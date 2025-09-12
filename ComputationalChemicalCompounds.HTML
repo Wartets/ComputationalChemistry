@@ -31,7 +31,16 @@
 					<option value="H2O">H₂O (Water)</option>
 					<option value="CH4">CH₄ (Methane)</option>
 					<option value="NH3">NH₃ (Ammonia)</option>
+					<option value="CO2">CO₂ (Carbon Dioxide)</option>
+					<option value="C2H4">C₂H₄ (Ethylene)</option>
+					<option value="HCN">HCN (Hydrogen Cyanide)</option>
+					<option value="SO2">SO₂ (Sulfur Dioxide)</option>
 					<option value="Custom">Custom Molecule</option>
+					<option value="H2SO4">H₂SO₄ (Sulfuric Acid)</option>
+					<option value="CH3COOH">CH₃COOH (Acetic Acid)</option>
+					<option value="C6H6">C₆H₆ (Benzene)</option>
+					<option value="C2H5OH">C₂H₅OH (Ethanol)</option>
+					<option value="NH2CONH2">NH₂CONH₂ (Urea)</option>
 				</select>
 			</div>
 			
@@ -187,6 +196,220 @@ const MOLECULE_CONFIGS = {
 		updateAngleDisplay: updateNH3Angle,
 		checkBonding: checkNH3Bonding
 	},
+	"CO2": {
+		name: "CO₂",
+		attractorData: [
+			{ name: 'C', color: 0x808080, mass: 12, amplitude: 2.0, radius: 0.12, coreElectrons: 2, draggable: false },
+			{ name: 'O1', color: 0xff4136, mass: 16, amplitude: 1.8, radius: 0.1, coreElectrons: 2, draggable: true },
+			{ name: 'O2', color: 0xff4136, mass: 16, amplitude: 1.8, radius: 0.1, coreElectrons: 2, draggable: true }
+		],
+		lonePairCount: 0, // No lone pairs on central carbon
+		initialPositions: [
+			new THREE.Vector3(0, 0, 0),
+			new THREE.Vector3(1.0, 0, 0),
+			new THREE.Vector3(-1.0, 0, 0)
+		],
+		updateAngleDisplay: updateCO2Angle,
+		checkBonding: checkCO2Bonding
+	},
+	"C2H4": { // Ethylene - planar molecule with a double bond
+		name: "C₂H₄",
+		attractorData: [
+			{ name: 'C1', color: 0x808080, mass: 12, amplitude: 2.0, radius: 0.12, coreElectrons: 2, draggable: false },
+			{ name: 'C2', color: 0x808080, mass: 12, amplitude: 2.0, radius: 0.12, coreElectrons: 2, draggable: false },
+			{ name: 'H1', color: 0xffffff, mass: 1, amplitude: 1.0, radius: 0.06, coreElectrons: 0, draggable: true },
+			{ name: 'H2', color: 0xffffff, mass: 1, amplitude: 1.0, radius: 0.06, coreElectrons: 0, draggable: true },
+			{ name: 'H3', color: 0xffffff, mass: 1, amplitude: 1.0, radius: 0.06, coreElectrons: 0, draggable: true },
+			{ name: 'H4', color: 0xffffff, mass: 1, amplitude: 1.0, radius: 0.06, coreElectrons: 0, draggable: true }
+		],
+		lonePairCount: 0,
+		initialPositions: [
+			new THREE.Vector3(-0.6, 0, 0), // C1
+			new THREE.Vector3(0.6, 0, 0), // C2
+			new THREE.Vector3(-1.2, 0.8, 0), // H1 (attach to C1)
+			new THREE.Vector3(-1.2, -0.8, 0), // H2 (attach to C1)
+			new THREE.Vector3(1.2, 0.8, 0), // H3 (attach to C2)
+			new THREE.Vector3(1.2, -0.8, 0) // H4 (attach to C2)
+		],
+		updateAngleDisplay: updateC2H4Angle,
+		checkBonding: checkC2H4Bonding
+	},
+	"HCN": { // Linear molecule
+		name: "HCN",
+		attractorData: [
+			{ name: 'H', color: 0xffffff, mass: 1, amplitude: 1.0, radius: 0.06, coreElectrons: 0, draggable: true },
+			{ name: 'C', color: 0x808080, mass: 12, amplitude: 2.0, radius: 0.12, coreElectrons: 2, draggable: false },
+			{ name: 'N', color: 0x0000ff, mass: 14, amplitude: 2.0, radius: 0.11, coreElectrons: 2, draggable: true }
+		],
+		lonePairCount: 1, // One lone pair on Nitrogen
+		initialPositions: [
+			new THREE.Vector3(-1.0, 0, 0), // H
+			new THREE.Vector3(0, 0, 0), // C
+			new THREE.Vector3(1.0, 0, 0) // N
+		],
+		updateLonePairs: updateHCNLonePairs,
+		updateAngleDisplay: updateHCNAngle,
+		checkBonding: checkHCNBonding
+	},
+	"SO2": { // Bent molecule with lone pairs
+		name: "SO₂",
+		attractorData: [
+			{ name: 'S', color: 0xffff00, mass: 32, amplitude: 2.2, radius: 0.13, coreElectrons: 10, draggable: false },
+			{ name: 'O1', color: 0xff4136, mass: 16, amplitude: 1.8, radius: 0.1, coreElectrons: 2, draggable: true },
+			{ name: 'O2', color: 0xff4136, mass: 16, amplitude: 1.8, radius: 0.1, coreElectrons: 2, draggable: true }
+		],
+		lonePairCount: 1, // One lone pair on Sulfur (if treating it as sp2 like)
+		initialPositions: [
+			new THREE.Vector3(0, 0, 0),
+			new THREE.Vector3(1.0, 0.5, 0),
+			new THREE.Vector3(-1.0, 0.5, 0)
+		],
+		updateLonePairs: updateSO2LonePairs,
+		updateAngleDisplay: updateSO2Angle,
+		checkBonding: checkSO2Bonding
+	},
+	"H2SO4": { // Sulfuric Acid - A tetrahedral sulfur center with two OH groups and two double-bonded oxygens. Highly asymmetric.
+		name: "H₂SO₄",
+		attractorData: [
+			{ name: 'S', color: 0xffff00, mass: 32, amplitude: 2.2, radius: 0.13, coreElectrons: 10, draggable: false },
+			{ name: 'O1', color: 0xff4136, mass: 16, amplitude: 1.8, radius: 0.1, coreElectrons: 2, draggable: true }, // Double bond O
+			{ name: 'O2', color: 0xff4136, mass: 16, amplitude: 1.8, radius: 0.1, coreElectrons: 2, draggable: true }, // Double bond O
+			{ name: 'O3', color: 0xff4136, mass: 16, amplitude: 1.8, radius: 0.1, coreElectrons: 2, draggable: true }, // Single bond O (to H)
+			{ name: 'O4', color: 0xff4136, mass: 16, amplitude: 1.8, radius: 0.1, coreElectrons: 2, draggable: true }, // Single bond O (to H)
+			{ name: 'H1', color: 0xffffff, mass: 1, amplitude: 1.0, radius: 0.06, coreElectrons: 0, draggable: true }, // on O3
+			{ name: 'H2', color: 0xffffff, mass: 1, amplitude: 1.0, radius: 0.06, coreElectrons: 0, draggable: true }  // on O4
+		],
+		lonePairCount: 0, // Simplified, focus on atom positions
+		initialPositions: [
+			new THREE.Vector3(0, 0, 0), // S
+			new THREE.Vector3(0, 1.2, 0), // O1 (double bond)
+			new THREE.Vector3(0, -1.2, 0), // O2 (double bond)
+			new THREE.Vector3(1.0, 0, 0.8), // O3 (single bond to H1)
+			new THREE.Vector3(-1.0, 0, 0.8), // O4 (single bond to H2)
+			new THREE.Vector3(1.6, 0.5, 1.2), // H1 (on O3)
+			new THREE.Vector3(-1.6, 0.5, 1.2) // H2 (on O4)
+		],
+		updateAngleDisplay: updateH2SO4Angle,
+		checkBonding: checkH2SO4Bonding
+	},
+	"CH3COOH": { // Acetic Acid - carboxylic acid group, a methyl group.
+		name: "CH₃COOH",
+		attractorData: [
+			{ name: 'C1', color: 0x808080, mass: 12, amplitude: 2.0, radius: 0.12, coreElectrons: 2, draggable: false }, // Methyl Carbon
+			{ name: 'C2', color: 0x808080, mass: 12, amplitude: 2.0, radius: 0.12, coreElectrons: 2, draggable: false }, // Carboxyl Carbon
+			{ name: 'O1', color: 0xff4136, mass: 16, amplitude: 1.8, radius: 0.1, coreElectrons: 2, draggable: true }, // Double bond O
+			{ name: 'O2', color: 0xff4136, mass: 16, amplitude: 1.8, radius: 0.1, coreElectrons: 2, draggable: true }, // Hydroxyl O
+			{ name: 'H1', color: 0xffffff, mass: 1, amplitude: 1.0, radius: 0.06, coreElectrons: 0, draggable: true }, // Methyl H1
+			{ name: 'H2', color: 0xffffff, mass: 1, amplitude: 1.0, radius: 0.06, coreElectrons: 0, draggable: true }, // Methyl H2
+			{ name: 'H3', color: 0xffffff, mass: 1, amplitude: 1.0, radius: 0.06, coreElectrons: 0, draggable: true }, // Methyl H3
+			{ name: 'H4', color: 0xffffff, mass: 1, amplitude: 1.0, radius: 0.06, coreElectrons: 0, draggable: true }  // Hydroxyl H
+		],
+		lonePairCount: 0,
+		initialPositions: [
+			new THREE.Vector3(-1.0, 0, 0), // C1 (Methyl)
+			new THREE.Vector3(0.5, 0, 0), // C2 (Carboxyl)
+			new THREE.Vector3(0.5, 1.0, 0), // O1 (double bond)
+			new THREE.Vector3(1.5, -0.5, 0), // O2 (hydroxyl)
+			new THREE.Vector3(-1.5, 0.8, 0), // H1
+			new THREE.Vector3(-1.5, -0.8, 0), // H2
+			new THREE.Vector3(-0.5, 0, 0.8), // H3
+			new THREE.Vector3(2.0, -0.9, 0) // H4 (on O2)
+		],
+		updateAngleDisplay: updateCH3COOHAngle,
+		checkBonding: checkCH3COOHBonding
+	},
+	"C6H6": { // Benzene - Planar hexagonal ring, delocalized electrons.
+		name: "C₆H₆",
+		attractorData: [
+			{ name: 'C1', color: 0x808080, mass: 12, amplitude: 2.0, radius: 0.12, coreElectrons: 2, draggable: false },
+			{ name: 'C2', color: 0x808080, mass: 12, amplitude: 2.0, radius: 0.12, coreElectrons: 2, draggable: false },
+			{ name: 'C3', color: 0x808080, mass: 12, amplitude: 2.0, radius: 0.12, coreElectrons: 2, draggable: false },
+			{ name: 'C4', color: 0x808080, mass: 12, amplitude: 2.0, radius: 0.12, coreElectrons: 2, draggable: false },
+			{ name: 'C5', color: 0x808080, mass: 12, amplitude: 2.0, radius: 0.12, coreElectrons: 2, draggable: false },
+			{ name: 'C6', color: 0x808080, mass: 12, amplitude: 2.0, radius: 0.12, coreElectrons: 2, draggable: false },
+			{ name: 'H1', color: 0xffffff, mass: 1, amplitude: 1.0, radius: 0.06, coreElectrons: 0, draggable: true },
+			{ name: 'H2', color: 0xffffff, mass: 1, amplitude: 1.0, radius: 0.06, coreElectrons: 0, draggable: true },
+			{ name: 'H3', color: 0xffffff, mass: 1, amplitude: 1.0, radius: 0.06, coreElectrons: 0, draggable: true },
+			{ name: 'H4', color: 0xffffff, mass: 1, amplitude: 1.0, radius: 0.06, coreElectrons: 0, draggable: true },
+			{ name: 'H5', color: 0xffffff, mass: 1, amplitude: 1.0, radius: 0.06, coreElectrons: 0, draggable: true },
+			{ name: 'H6', color: 0xffffff, mass: 1, amplitude: 1.0, radius: 0.06, coreElectrons: 0, draggable: true }
+		],
+		lonePairCount: 0,
+		initialPositions: [
+			// Carbon positions (approximate hexagon)
+			new THREE.Vector3(0, 1.0, 0),
+			new THREE.Vector3(0.866, 0.5, 0),
+			new THREE.Vector3(0.866, -0.5, 0),
+			new THREE.Vector3(0, -1.0, 0),
+			new THREE.Vector3(-0.866, -0.5, 0),
+			new THREE.Vector3(-0.866, 0.5, 0),
+			// Hydrogen positions (radial outwards)
+			new THREE.Vector3(0, 1.8, 0),
+			new THREE.Vector3(1.5, 0.9, 0),
+			new THREE.Vector3(1.5, -0.9, 0),
+			new THREE.Vector3(0, -1.8, 0),
+			new THREE.Vector3(-1.5, -0.9, 0),
+			new THREE.Vector3(-1.5, 0.9, 0)
+		],
+		updateAngleDisplay: updateC6H6Angle,
+		checkBonding: checkC6H6Bonding
+	},
+	"C2H5OH": { // Ethanol - an alkyl group and a hydroxyl group
+		name: "C₂H₅OH",
+		attractorData: [
+			{ name: 'C1', color: 0x808080, mass: 12, amplitude: 2.0, radius: 0.12, coreElectrons: 2, draggable: false },
+			{ name: 'C2', color: 0x808080, mass: 12, amplitude: 2.0, radius: 0.12, coreElectrons: 2, draggable: false },
+			{ name: 'O', color: 0xff4136, mass: 16, amplitude: 1.8, radius: 0.1, coreElectrons: 2, draggable: true },
+			{ name: 'H1', color: 0xffffff, mass: 1, amplitude: 1.0, radius: 0.06, coreElectrons: 0, draggable: true }, // on C1
+			{ name: 'H2', color: 0xffffff, mass: 1, amplitude: 1.0, radius: 0.06, coreElectrons: 0, draggable: true }, // on C1
+			{ name: 'H3', color: 0xffffff, mass: 1, amplitude: 1.0, radius: 0.06, coreElectrons: 0, draggable: true }, // on C1
+			{ name: 'H4', color: 0xffffff, mass: 1, amplitude: 1.0, radius: 0.06, coreElectrons: 0, draggable: true }, // on C2
+			{ name: 'H5', color: 0xffffff, mass: 1, amplitude: 1.0, radius: 0.06, coreElectrons: 0, draggable: true }, // on C2
+			{ name: 'H6', color: 0xffffff, mass: 1, amplitude: 1.0, radius: 0.06, coreElectrons: 0, draggable: true }  // on O
+		],
+		lonePairCount: 2, // on Oxygen
+		initialPositions: [
+			new THREE.Vector3(-0.8, 0, 0), // C1
+			new THREE.Vector3(0.5, 0, 0), // C2
+			new THREE.Vector3(1.5, 0.5, 0), // O
+			new THREE.Vector3(-1.2, 0.8, 0.3), // H1 (C1)
+			new THREE.Vector3(-1.2, -0.8, 0.3), // H2 (C1)
+			new THREE.Vector3(-0.4, 0, -0.8), // H3 (C1)
+			new THREE.Vector3(0.9, 0.8, 0.3), // H4 (C2)
+			new THREE.Vector3(0.9, -0.8, 0.3), // H5 (C2)
+			new THREE.Vector3(2.0, 0.1, 0) // H6 (O)
+		],
+		updateLonePairs: updateC2H5OHLonePairs,
+		updateAngleDisplay: updateC2H5OHAngle,
+		checkBonding: checkC2H5OHBonding
+	},
+	"NH2CONH2": { // Urea - planar molecule with two amine groups and a carbonyl group.
+		name: "NH₂CONH₂",
+		attractorData: [
+			{ name: 'C', color: 0x808080, mass: 12, amplitude: 2.0, radius: 0.12, coreElectrons: 2, draggable: false },
+			{ name: 'O', color: 0xff4136, mass: 16, amplitude: 1.8, radius: 0.1, coreElectrons: 2, draggable: true },
+			{ name: 'N1', color: 0x0000ff, mass: 14, amplitude: 2.0, radius: 0.11, coreElectrons: 2, draggable: true },
+			{ name: 'N2', color: 0x0000ff, mass: 14, amplitude: 2.0, radius: 0.11, coreElectrons: 2, draggable: true },
+			{ name: 'H1', color: 0xffffff, mass: 1, amplitude: 1.0, radius: 0.06, coreElectrons: 0, draggable: true }, // on N1
+			{ name: 'H2', color: 0xffffff, mass: 1, amplitude: 1.0, radius: 0.06, coreElectrons: 0, draggable: true }, // on N1
+			{ name: 'H3', color: 0xffffff, mass: 1, amplitude: 1.0, radius: 0.06, coreElectrons: 0, draggable: true }, // on N2
+			{ name: 'H4', color: 0xffffff, mass: 1, amplitude: 1.0, radius: 0.06, coreElectrons: 0, draggable: true }  // on N2
+		],
+		lonePairCount: 4, // 2 on O, 1 on N1, 1 on N2 (simplified, N lone pairs are active in bonding)
+		initialPositions: [
+			new THREE.Vector3(0, 0, 0), // C
+			new THREE.Vector3(0, 1.0, 0), // O
+			new THREE.Vector3(-1.0, -0.5, 0), // N1
+			new THREE.Vector3(1.0, -0.5, 0), // N2
+			new THREE.Vector3(-1.5, -1.2, 0), // H1 (N1)
+			new THREE.Vector3(-0.5, -1.2, 0.5), // H2 (N1)
+			new THREE.Vector3(1.5, -1.2, 0), // H3 (N2)
+			new THREE.Vector3(0.5, -1.2, 0.5)  // H4 (N2)
+		],
+		updateLonePairs: updateNH2CONH2LonePairs,
+		updateAngleDisplay: updateNH2CONH2Angle,
+		checkBonding: checkNH2CONH2Bonding
+	},
 	"Custom": {
 		name: "Custom Molecule",
 		attractorData: [], // User defined
@@ -197,6 +420,7 @@ const MOLECULE_CONFIGS = {
 		checkBonding: null
 	}
 };
+
 let currentMoleculeKey = "H2O";
 let currentConfig = MOLECULE_CONFIGS[currentMoleculeKey];
 
@@ -315,10 +539,559 @@ function reinitParticles(count) {
 	resetSimulation(); // Reset positions after reinitialization
 }
 
-/**
+// --- Specific Molecule Logic (CO2) ---
+function updateCO2Angle() {
+	const [c, o1, o2] = attractors;
+	if (!c || !o1 || !o2) {
+		document.getElementById('angleDisplay').textContent = '';
+		return;
+	}
+	const v1 = new THREE.Vector3().subVectors(o1.pos, c.pos);
+	const v2 = new THREE.Vector3().subVectors(o2.pos, c.pos);
+	const angleDeg = THREE.MathUtils.radToDeg(v1.angleTo(v2));
+	document.getElementById('angleDisplay').textContent = `O-C-O Angle: ${angleDeg.toFixed(1)}°`;
+}
+
+function checkCO2Bonding(particlePos, carbonAttractor, oxygenAttractors) {
+	const c = carbonAttractor;
+	if (!c || oxygenAttractors.length === 0) return false;
+
+	const bondThresholdSq = 0.05;
+
+	for (const o of oxygenAttractors) {
+		const vec_C_O = new THREE.Vector3().subVectors(o.pos, c.pos);
+		const vec_C_p = new THREE.Vector3().subVectors(particlePos, c.pos);
+		const proj = vec_C_p.dot(vec_C_O) / vec_C_O.lengthSq();
+		const distSq = vec_C_p.clone().addScaledVector(vec_C_O, -proj).lengthSq();
+		if (proj > 0 && proj < 1 && distSq < bondThresholdSq) return true;
+	}
+	return false;
+}
+
+// --- Specific Molecule Logic (C2H4) ---
+function updateC2H4Angle() {
+    // S'assurer que tous les attracteurs nécessaires existent
+    if (attractors.length < 6) { // C1, C2, H1, H2, H3, H4
+        document.getElementById('angleDisplay').textContent = '';
+        return;
+    }
+    const c1 = attractors[0];
+    const c2 = attractors[1];
+    const h1 = attractors[2]; // Un H lié à C1
+    // const h3 = attractors[4]; // Un H lié à C2, si on voulait C2-C1-H3
+
+    // Exemple: Angle H1-C1-C2
+    const v1 = new THREE.Vector3().subVectors(h1.pos, c1.pos);
+    const v2 = new THREE.Vector3().subVectors(c2.pos, c1.pos);
+    const angleDeg = THREE.MathUtils.radToDeg(v1.angleTo(v2));
+    document.getElementById('angleDisplay').textContent = `H-C-C Angle: ${angleDeg.toFixed(1)}°`;
+}
+
+function checkC2H4Bonding(particlePos) {
+    // Assurez-vous que les attractors sont disponibles et dans le bon ordre
+    if (attractors.length < 6) return false;
+
+    const c1 = attractors[0];
+    const c2 = attractors[1];
+    const h1 = attractors[2]; // Lié à C1
+    const h2 = attractors[3]; // Lié à C1
+    const h3 = attractors[4]; // Lié à C2
+    const h4 = attractors[5]; // Lié à C2
+
+    const bondThresholdSq = 0.05; // Ajustez si nécessaire
+
+    // Fonction utilitaire pour vérifier une liaison entre deux points
+    function isParticleBonded(pPos, startAttractor, endAttractor) {
+        const vec_start_end = new THREE.Vector3().subVectors(endAttractor.pos, startAttractor.pos);
+        const vec_start_p = new THREE.Vector3().subVectors(pPos, startAttractor.pos);
+        const proj = vec_start_p.dot(vec_start_end) / vec_start_end.lengthSq();
+        const distSq = vec_start_p.clone().addScaledVector(vec_start_end, -proj).lengthSq();
+        return proj > 0 && proj < 1 && distSq < bondThresholdSq;
+    }
+
+    // 1. Vérifier la liaison C1-C2 (double liaison)
+    if (isParticleBonded(particlePos, c1, c2)) return true;
+
+    // 2. Vérifier les liaisons C1-H
+    if (isParticleBonded(particlePos, c1, h1)) return true;
+    if (isParticleBonded(particlePos, c1, h2)) return true;
+
+    // 3. Vérifier les liaisons C2-H
+    if (isParticleBonded(particlePos, c2, h3)) return true;
+    if (isParticleBonded(particlePos, c2, h4)) return true;
+
+    return false;
+}
+
+// --- Specific Molecule Logic (HCN) ---
+function updateHCNLonePairs() {
+	const [h, c, n] = attractors;
+	if (!h || !c || !n) return;
+
+	// Lone pair on Nitrogen, pointing away from the Carbon
+	const ncVector = new THREE.Vector3().subVectors(c.pos, n.pos).normalize();
+	lonePairs[0].pos.copy(n.pos).sub(ncVector.multiplyScalar(0.5)); // Adjust distance
+}
+
+function updateHCNAngle() {
+	const [h, c, n] = attractors;
+	if (!h || !c || !n) {
+		document.getElementById('angleDisplay').textContent = '';
+		return;
+	}
+	// For a linear molecule, the angle should be close to 180°
+	const v1 = new THREE.Vector3().subVectors(h.pos, c.pos);
+	const v2 = new THREE.Vector3().subVectors(n.pos, c.pos);
+	const angleDeg = THREE.MathUtils.radToDeg(v1.angleTo(v2));
+	document.getElementById('angleDisplay').textContent = `H-C-N Angle: ${angleDeg.toFixed(1)}°`;
+}
+
+function checkHCNBonding(particlePos, hydrogenAttractor, carbonAttractor, nitrogenAttractor) {
+	const h = hydrogenAttractor;
+	const c = carbonAttractor;
+	const n = nitrogenAttractor;
+
+	if (!h || !c || !n) return false;
+
+	const bondThresholdSq = 0.05;
+
+	// Check H-C bond
+	const vec_H_C = new THREE.Vector3().subVectors(c.pos, h.pos);
+	const vec_H_p = new THREE.Vector3().subVectors(particlePos, h.pos);
+	const projHC = vec_H_p.dot(vec_H_C) / vec_H_C.lengthSq();
+	const distSqHC = vec_H_p.clone().addScaledVector(vec_H_C, -projHC).lengthSq();
+	if (projHC > 0 && projHC < 1 && distSqHC < bondThresholdSq) return true;
+
+	// Check C-N bond
+	const vec_C_N = new THREE.Vector3().subVectors(n.pos, c.pos);
+	const vec_C_p = new THREE.Vector3().subVectors(particlePos, c.pos);
+	const projCN = vec_C_p.dot(vec_C_N) / vec_C_N.lengthSq();
+	const distSqCN = vec_C_p.clone().addScaledVector(vec_C_N, -projCN).lengthSq();
+	if (projCN > 0 && projCN < 1 && distSqCN < bondThresholdSq) return true;
+
+	return false;
+}
+
+// --- Specific Molecule Logic (SO2) ---
+function updateSO2LonePairs() {
+	const [s, o1, o2] = attractors;
+	if (!s || !o1 || !o2) return;
+
+	const so1 = new THREE.Vector3().subVectors(o1.pos, s.pos).normalize();
+	const so2 = new THREE.Vector3().subVectors(o2.pos, s.pos).normalize();
+	const bisector = new THREE.Vector3().addVectors(so1, so2).normalize();
+
+	// Lone pair generally repels from the bonds, typically in the opposite direction of the bisector
+	lonePairs[0].pos.copy(s.pos).sub(bisector.multiplyScalar(0.7)); // Adjust distance
+}
+
+function updateSO2Angle() {
+	const [s, o1, o2] = attractors;
+	if (!s || !o1 || !o2) {
+		document.getElementById('angleDisplay').textContent = '';
+		return;
+	}
+	const v1 = new THREE.Vector3().subVectors(o1.pos, s.pos);
+	const v2 = new THREE.Vector3().subVectors(o2.pos, s.pos);
+	const angleDeg = THREE.MathUtils.radToDeg(v1.angleTo(v2));
+	document.getElementById('angleDisplay').textContent = `O-S-O Angle: ${angleDeg.toFixed(1)}°`;
+}
+
+function checkSO2Bonding(particlePos, sulfurAttractor, oxygenAttractors) {
+	const s = sulfurAttractor;
+	if (!s || oxygenAttractors.length === 0) return false;
+
+	const bondThresholdSq = 0.05;
+
+	for (const o of oxygenAttractors) {
+		const vec_S_O = new THREE.Vector3().subVectors(o.pos, s.pos);
+		const vec_S_p = new THREE.Vector3().subVectors(particlePos, s.pos);
+		const proj = vec_S_p.dot(vec_S_O) / vec_S_O.lengthSq();
+		const distSq = vec_S_p.clone().addScaledVector(vec_S_O, -proj).lengthSq();
+		if (proj > 0 && proj < 1 && distSq < bondThresholdSq) return true;
+	}
+	return false;
+}
+
+// --- Specific Molecule Logic (H2SO4) ---
+function updateH2SO4Angle() {
+    if (attractors.length < 7) { // S, O1, O2, O3, O4, H1, H2
+        document.getElementById('angleDisplay').textContent = '';
+        return;
+    }
+    const s = attractors[0];
+    const o1 = attractors[1]; // Double bond O
+    const o3 = attractors[3]; // Single bond O
+    const h1 = attractors[5]; // H on O3
+
+    // Angle O1-S-O3
+    const v1 = new THREE.Vector3().subVectors(o1.pos, s.pos);
+    const v2 = new THREE.Vector3().subVectors(o3.pos, s.pos);
+    const angleOSO = THREE.MathUtils.radToDeg(v1.angleTo(v2));
+
+    // Angle S-O3-H1
+    const v3 = new THREE.Vector3().subVectors(s.pos, o3.pos);
+    const v4 = new THREE.Vector3().subVectors(h1.pos, o3.pos);
+    const angleSOH = THREE.MathUtils.radToDeg(v3.angleTo(v4));
+
+    document.getElementById('angleDisplay').textContent =
+        `O=S-O Angle: ${angleOSO.toFixed(1)}° | S-O-H Angle: ${angleSOH.toFixed(1)}°`;
+}
+
+function checkH2SO4Bonding(particlePos) {
+    if (attractors.length < 7) return false;
+
+    const s = attractors[0];
+    const o1 = attractors[1];
+    const o2 = attractors[2];
+    const o3 = attractors[3];
+    const o4 = attractors[4];
+    const h1 = attractors[5];
+    const h2 = attractors[6];
+
+    const bondThresholdSq = 0.05;
+
+    function isParticleBonded(pPos, startAttractor, endAttractor) {
+        const vec_start_end = new THREE.Vector3().subVectors(endAttractor.pos, startAttractor.pos);
+        const vec_start_p = new THREE.Vector3().subVectors(pPos, startAttractor.pos);
+        const proj = vec_start_p.dot(vec_start_end) / vec_start_end.lengthSq();
+        const distSq = vec_start_p.clone().addScaledVector(vec_start_end, -proj).lengthSq();
+        return proj > 0 && proj < 1 && distSq < bondThresholdSq;
+    }
+
+    // S-O bonds
+    if (isParticleBonded(particlePos, s, o1)) return true; // Double bond
+    if (isParticleBonded(particlePos, s, o2)) return true; // Double bond
+    if (isParticleBonded(particlePos, s, o3)) return true; // Single bond
+    if (isParticleBonded(particlePos, s, o4)) return true; // Single bond
+
+    // O-H bonds
+    if (isParticleBonded(particlePos, o3, h1)) return true;
+    if (isParticleBonded(particlePos, o4, h2)) return true;
+
+    return false;
+}
+
+// --- Specific Molecule Logic (CH3COOH) ---
+function updateCH3COOHAngle() {
+    if (attractors.length < 8) { // C1, C2, O1, O2, H1, H2, H3, H4
+        document.getElementById('angleDisplay').textContent = '';
+        return;
+    }
+    const c1 = attractors[0];
+    const c2 = attractors[1];
+    const o1 = attractors[2]; // Double bond O
+    const o2 = attractors[3]; // Hydroxyl O
+    const h1 = attractors[4]; // H on C1
+    const h4 = attractors[7]; // H on O2
+
+    // Angle H1-C1-C2 (Methyl group)
+    const v1 = new THREE.Vector3().subVectors(h1.pos, c1.pos);
+    const v2 = new THREE.Vector3().subVectors(c2.pos, c1.pos);
+    const angleHCC = THREE.MathUtils.radToDeg(v1.angleTo(v2));
+
+    // Angle O1=C2-O2 (Carboxyl group)
+    const v3 = new THREE.Vector3().subVectors(o1.pos, c2.pos);
+    const v4 = new THREE.Vector3().subVectors(o2.pos, c2.pos);
+    const angleOCO = THREE.MathUtils.radToDeg(v3.angleTo(v4));
+
+    document.getElementById('angleDisplay').textContent =
+        `H-C-C Angle: ${angleHCC.toFixed(1)}° | O=C-O Angle: ${angleOCO.toFixed(1)}°`;
+}
+
+function checkCH3COOHBonding(particlePos) {
+    if (attractors.length < 8) return false;
+
+    const c1 = attractors[0];
+    const c2 = attractors[1];
+    const o1 = attractors[2];
+    const o2 = attractors[3];
+    const h1 = attractors[4];
+    const h2 = attractors[5];
+    const h3 = attractors[6];
+    const h4 = attractors[7];
+
+    const bondThresholdSq = 0.05;
+
+    function isParticleBonded(pPos, startAttractor, endAttractor) {
+        const vec_start_end = new THREE.Vector3().subVectors(endAttractor.pos, startAttractor.pos);
+        const vec_start_p = new THREE.Vector3().subVectors(pPos, startAttractor.pos);
+        const proj = vec_start_p.dot(vec_start_end) / vec_start_end.lengthSq();
+        const distSq = vec_start_p.clone().addScaledVector(vec_start_end, -proj).lengthSq();
+        return proj > 0 && proj < 1 && distSq < bondThresholdSq;
+    }
+
+    // C1-C2 bond
+    if (isParticleBonded(particlePos, c1, c2)) return true;
+
+    // C1-H bonds
+    if (isParticleBonded(particlePos, c1, h1)) return true;
+    if (isParticleBonded(particlePos, c1, h2)) return true;
+    if (isParticleBonded(particlePos, c1, h3)) return true;
+
+    // C2=O1 bond
+    if (isParticleBonded(particlePos, c2, o1)) return true;
+
+    // C2-O2 bond
+    if (isParticleBonded(particlePos, c2, o2)) return true;
+
+    // O2-H4 bond
+    if (isParticleBonded(particlePos, o2, h4)) return true;
+
+    return false;
+}
+
+// --- Specific Molecule Logic (C6H6) ---
+function updateC6H6Angle() {
+    if (attractors.length < 12) { // C1-C6, H1-H6
+        document.getElementById('angleDisplay').textContent = '';
+        return;
+    }
+    const c1 = attractors[0];
+    const c2 = attractors[1];
+    const c3 = attractors[2];
+    const h1 = attractors[6];
+
+    // Angle C6-C1-C2 (inside the ring)
+    const v1 = new THREE.Vector3().subVectors(attractors[5].pos, c1.pos); // C6
+    const v2 = new THREE.Vector3().subVectors(c2.pos, c1.pos);
+    const angleCCC = THREE.MathUtils.radToDeg(v1.angleTo(v2));
+
+    // Angle H1-C1-C2 (outside the ring)
+    const v3 = new THREE.Vector3().subVectors(h1.pos, c1.pos);
+    const v4 = new THREE.Vector3().subVectors(c2.pos, c1.pos);
+    const angleHCC = THREE.MathUtils.radToDeg(v3.angleTo(v4));
+
+    document.getElementById('angleDisplay').textContent =
+        `C-C-C Angle: ${angleCCC.toFixed(1)}° | H-C-C Angle: ${angleHCC.toFixed(1)}°`;
+}
+
+function checkC6H6Bonding(particlePos) {
+    if (attractors.length < 12) return false;
+
+    const bondThresholdSq = 0.05;
+
+    function isParticleBonded(pPos, startAttractor, endAttractor) {
+        const vec_start_end = new THREE.Vector3().subVectors(endAttractor.pos, startAttractor.pos);
+        const vec_start_p = new THREE.Vector3().subVectors(pPos, startAttractor.pos);
+        const proj = vec_start_p.dot(vec_start_end) / vec_start_end.lengthSq();
+        const distSq = vec_start_p.clone().addScaledVector(vec_start_end, -proj).lengthSq();
+        return proj > 0 && proj < 1 && distSq < bondThresholdSq;
+    }
+
+    // C-C bonds in the ring
+    for (let i = 0; i < 6; i++) {
+        const c1 = attractors[i];
+        const c2 = attractors[(i + 1) % 6]; // Wrap around for C6-C1
+        if (isParticleBonded(particlePos, c1, c2)) return true;
+    }
+
+    // C-H bonds
+    for (let i = 0; i < 6; i++) {
+        const carbon = attractors[i];
+        const hydrogen = attractors[i + 6];
+        if (isParticleBonded(particlePos, carbon, hydrogen)) return true;
+    }
+
+    return false;
+}
+
+// --- Specific Molecule Logic (C2H5OH) ---
+function updateC2H5OHLonePairs() {
+	const [c1, c2, o, h1, h2, h3, h4, h5, h6] = attractors;
+	if (!c1 || !c2 || !o) return;
+
+	// Lone pairs on Oxygen. They repel from the C-O bond and O-H bond.
+	const coVector = new THREE.Vector3().subVectors(c2.pos, o.pos).normalize();
+	const ohVector = new THREE.Vector3().subVectors(h6.pos, o.pos).normalize();
+
+	// Approximate position by taking vectors roughly perpendicular to the bonds.
+	// This is a simplification; a more accurate model would consider VSEPR theory.
+	const normal = new THREE.Vector3().crossVectors(coVector, ohVector).normalize();
+	const bisector = new THREE.Vector3().addVectors(coVector, ohVector).normalize();
+
+	// Lone pair 1 (away from C-O and O-H)
+	lonePairs[0].pos.copy(o.pos).add(normal.multiplyScalar(0.5));
+	// Lone pair 2 (opposite direction)
+	lonePairs[1].pos.copy(o.pos).sub(normal.multiplyScalar(0.5));
+}
+
+function updateC2H5OHAngle() {
+    if (attractors.length < 9) { // C1, C2, O, H1-H6
+        document.getElementById('angleDisplay').textContent = '';
+        return;
+    }
+    const c1 = attractors[0];
+    const c2 = attractors[1];
+    const o = attractors[2];
+    const h6 = attractors[8]; // H on O
+
+    // Angle C1-C2-O
+    const v1 = new THREE.Vector3().subVectors(c1.pos, c2.pos);
+    const v2 = new THREE.Vector3().subVectors(o.pos, c2.pos);
+    const angleCCO = THREE.MathUtils.radToDeg(v1.angleTo(v2));
+
+    // Angle C2-O-H
+    const v3 = new THREE.Vector3().subVectors(c2.pos, o.pos);
+    const v4 = new THREE.Vector3().subVectors(h6.pos, o.pos);
+    const angleCOH = THREE.MathUtils.radToDeg(v3.angleTo(v4));
+
+    document.getElementById('angleDisplay').textContent =
+        `C-C-O Angle: ${angleCCO.toFixed(1)}° | C-O-H Angle: ${angleCOH.toFixed(1)}°`;
+}
+
+function checkC2H5OHBonding(particlePos) {
+    if (attractors.length < 9) return false;
+
+    const c1 = attractors[0];
+    const c2 = attractors[1];
+    const o = attractors[2];
+    const h1 = attractors[3];
+    const h2 = attractors[4];
+    const h3 = attractors[5];
+    const h4 = attractors[6];
+    const h5 = attractors[7];
+    const h6 = attractors[8];
+
+    const bondThresholdSq = 0.05;
+
+    function isParticleBonded(pPos, startAttractor, endAttractor) {
+        const vec_start_end = new THREE.Vector3().subVectors(endAttractor.pos, startAttractor.pos);
+        const vec_start_p = new THREE.Vector3().subVectors(pPos, startAttractor.pos);
+        const proj = vec_start_p.dot(vec_start_end) / vec_start_end.lengthSq();
+        const distSq = vec_start_p.clone().addScaledVector(vec_start_end, -proj).lengthSq();
+        return proj > 0 && proj < 1 && distSq < bondThresholdSq;
+    }
+
+    // C1-C2 bond
+    if (isParticleBonded(particlePos, c1, c2)) return true;
+
+    // C2-O bond
+    if (isParticleBonded(particlePos, c2, o)) return true;
+
+    // O-H bond
+    if (isParticleBonded(particlePos, o, h6)) return true;
+
+    // C1-H bonds
+    if (isParticleBonded(particlePos, c1, h1)) return true;
+    if (isParticleBonded(particlePos, c1, h2)) return true;
+    if (isParticleBonded(particlePos, c1, h3)) return true;
+
+    // C2-H bonds
+    if (isParticleBonded(particlePos, c2, h4)) return true;
+    if (isParticleBonded(particlePos, c2, h5)) return true;
+
+    return false;
+}
+
+// --- Specific Molecule Logic (NH2CONH2) ---
+function updateNH2CONH2LonePairs() {
+	const [c, o, n1, n2, h1, h2, h3, h4] = attractors;
+	if (!c || !o || !n1 || !n2) return;
+
+	// Lone pairs on N1, N2, and O.
+	// This is a simplification; the exact positions of lone pairs would depend on hybridization.
+
+	// For Oxygen (double bonded to Carbon), two lone pairs
+	const coVector = new THREE.Vector3().subVectors(c.pos, o.pos).normalize();
+	// We can place them roughly perpendicular to the C-O bond.
+	lonePairs[0].pos.copy(o.pos).add(new THREE.Vector3().crossVectors(coVector, new THREE.Vector3(0, 0, 1)).normalize().multiplyScalar(0.5));
+	lonePairs[1].pos.copy(o.pos).sub(new THREE.Vector3().crossVectors(coVector, new THREE.Vector3(0, 0, 1)).normalize().multiplyScalar(0.5));
+
+
+	// For N1 (amine), one lone pair. Points away from C-N and N-H bonds.
+	const cn1Vector = new THREE.Vector3().subVectors(c.pos, n1.pos).normalize();
+	const nh1Vector = new THREE.Vector3().subVectors(h1.pos, n1.pos).normalize();
+	const nh2Vector = new THREE.Vector3().subVectors(h2.pos, n1.pos).normalize();
+	// Using average of bond directions to find opposite direction for lone pair
+	const n1RepulsionVector = new THREE.Vector3().addVectors(cn1Vector, nh1Vector).add(nh2Vector).normalize();
+	lonePairs[2].pos.copy(n1.pos).sub(n1RepulsionVector.multiplyScalar(0.5));
+
+	// For N2 (amine), one lone pair.
+	const cn2Vector = new THREE.Vector3().subVectors(c.pos, n2.pos).normalize();
+	const nh3Vector = new THREE.Vector3().subVectors(h3.pos, n2.pos).normalize();
+	const nh4Vector = new THREE.Vector3().subVectors(h4.pos, n2.pos).normalize();
+	// Using average of bond directions to find opposite direction for lone pair
+	const n2RepulsionVector = new THREE.Vector3().addVectors(cn2Vector, nh3Vector).add(nh4Vector).normalize();
+	lonePairs[3].pos.copy(n2.pos).sub(n2RepulsionVector.multiplyScalar(0.5));
+}
+
+function updateNH2CONH2Angle() {
+    if (attractors.length < 8) { // C, O, N1, N2, H1-H4
+        document.getElementById('angleDisplay').textContent = '';
+        return;
+    }
+    const c = attractors[0];
+    const o = attractors[1];
+    const n1 = attractors[2];
+    const n2 = attractors[3];
+    const h1 = attractors[4]; // H on N1
+
+    // Angle N1-C-N2 (around the central carbon)
+    const v1 = new THREE.Vector3().subVectors(n1.pos, c.pos);
+    const v2 = new THREE.Vector3().subVectors(n2.pos, c.pos);
+    const angleNCN = THREE.MathUtils.radToDeg(v1.angleTo(v2));
+
+    // Angle O=C-N1
+    const v3 = new THREE.Vector3().subVectors(o.pos, c.pos);
+    const v4 = new THREE.Vector3().subVectors(n1.pos, c.pos);
+    const angleOCN = THREE.MathUtils.radToDeg(v3.angleTo(v4));
+
+    // Angle C-N1-H1
+    const v5 = new THREE.Vector3().subVectors(c.pos, n1.pos);
+    const v6 = new THREE.Vector3().subVectors(h1.pos, n1.pos);
+    const angleCNH = THREE.MathUtils.radToDeg(v5.angleTo(v6));
+
+    document.getElementById('angleDisplay').textContent =
+        `N-C-N Angle: ${angleNCN.toFixed(1)}° | O=C-N Angle: ${angleOCN.toFixed(1)}° | C-N-H Angle: ${angleCNH.toFixed(1)}°`;
+}
+
+function checkNH2CONH2Bonding(particlePos) {
+    if (attractors.length < 8) return false;
+
+    const c = attractors[0];
+    const o = attractors[1];
+    const n1 = attractors[2];
+    const n2 = attractors[3];
+    const h1 = attractors[4];
+    const h2 = attractors[5];
+    const h3 = attractors[6];
+    const h4 = attractors[7];
+
+    const bondThresholdSq = 0.05;
+
+    function isParticleBonded(pPos, startAttractor, endAttractor) {
+        const vec_start_end = new THREE.Vector3().subVectors(endAttractor.pos, startAttractor.pos);
+        const vec_start_p = new THREE.Vector3().subVectors(pPos, startAttractor.pos);
+        const proj = vec_start_p.dot(vec_start_end) / vec_start_end.lengthSq();
+        const distSq = vec_start_p.clone().addScaledVector(vec_start_end, -proj).lengthSq();
+        return proj > 0 && proj < 1 && distSq < bondThresholdSq;
+    }
+
+    // C=O bond
+    if (isParticleBonded(particlePos, c, o)) return true;
+
+    // C-N1 bond
+    if (isParticleBonded(particlePos, c, n1)) return true;
+
+    // C-N2 bond
+    if (isParticleBonded(particlePos, c, n2)) return true;
+
+    // N1-H bonds
+    if (isParticleBonded(particlePos, n1, h1)) return true;
+    if (isParticleBonded(particlePos, n1, h2)) return true;
+
+    // N2-H bonds
+    if (isParticleBonded(particlePos, n2, h3)) return true;
+    if (isParticleBonded(particlePos, n2, h4)) return true;
+
+    return false;
+}
+
+/*
  * Simulates a simplified quantum wave function.
  * The amplitude decreases with distance and oscillates.
- */
+*/
 function waveFunction(pos, attractor) {
 	const r = pos.distanceTo(attractor.pos);
 	if (r < 0.001) return attractor.amplitude; // Avoid division by zero at the nucleus
