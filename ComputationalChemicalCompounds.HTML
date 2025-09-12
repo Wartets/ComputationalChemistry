@@ -377,7 +377,7 @@
 			geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
 			geom.setAttribute('color', new THREE.BufferAttribute(particleColors, 3));
 			
-			const material = new THREE.PointsMaterial({ size: 0.012, vertexColors: true, blending: THREE.AdditiveBlending, transparent: true, opacity: 0.65 });
+			const material = new THREE.PointsMaterial({ size: 0.005, vertexColors: true, blending: THREE.AdditiveBlending, transparent: true, opacity: 0.65 });
 			particleSystem = new THREE.Points(geom, material);
 			scene.add(particleSystem);
 			resetSimulation(); // Reset positions after reinitialization
@@ -389,7 +389,7 @@
 		 */
 		function waveFunction(pos, attractor) {
 			const r = pos.distanceTo(attractor.pos);
-			if (r < 0.01) return attractor.amplitude; // Avoid division by zero at the nucleus
+			if (r < 0.001) return attractor.amplitude; // Avoid division by zero at the nucleus
 			return attractor.amplitude * Math.cos(QUANTUM_CONSTANT_K * r) / r;
 		}
 
