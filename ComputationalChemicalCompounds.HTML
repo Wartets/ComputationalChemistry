@@ -35,12 +35,12 @@
 					<option value="C2H4">C₂H₄ (Ethylene)</option>
 					<option value="HCN">HCN (Hydrogen Cyanide)</option>
 					<option value="SO2">SO₂ (Sulfur Dioxide)</option>
-					<option value="Custom">Custom Molecule</option>
 					<option value="H2SO4">H₂SO₄ (Sulfuric Acid)</option>
 					<option value="CH3COOH">CH₃COOH (Acetic Acid)</option>
 					<option value="C6H6">C₆H₆ (Benzene)</option>
 					<option value="C2H5OH">C₂H₅OH (Ethanol)</option>
 					<option value="NH2CONH2">NH₂CONH₂ (Urea)</option>
+					<option value="Custom">Custom Molecule</option>
 				</select>
 			</div>
 			
@@ -85,9 +85,25 @@
 					<input type="range" id="coreElectronCountSlider" min="0" max="1000" value="200" step="10">
 					<p class="text-xs text-gray-500 text-center mt-1">Affects number of red particles.</p>
 				</div>
+				
 				<hr class="border-gray-600 my-4">
+
+				<div id="customMoleculeControls" class="mt-6 hidden">
+					<h3 class="text-md font-bold text-white mb-3">Custom Molecule Settings</h3>
+					<div id="customAttractorInputs" class="space-y-3">
+						<!-- Custom attractor inputs will be generated here -->
+					</div>
+					<button id="addAttractorBtn" class="mt-4 w-full bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-4 rounded-lg transition duration-300">Add Attractor</button>
+					<div class="input-group mt-4">
+						<label for="customLonePairCount">Lone Pair Count</label>
+						<input type="number" id="customLonePairCount" value="0" min="0" max="4">
+					</div>
+				
+				<hr class="border-gray-600 my-4">
+				</div>
+				
 				<h3 class="text-md font-bold text-white mb-2">Colors:</h3>
-				<div class="grid grid-cols-2 gap-4">
+				<div class="grid grid-cols-3 gap-4">
 					<div class="input-group">
 						<label for="valenceColorPicker">Valence Electrons</label>
 						<input type="color" id="valenceColorPicker" value="#7df9ff">
@@ -113,6 +129,13 @@
 						<input type="number" id="customLonePairCount" value="0" min="0" max="4">
 					</div>
 				</div>
+			</div>
+			<div class="mt-8 text-center text-gray-400 text-xs">
+				<p class="font-medium">&copy; 2025. Project licensed under MIT. Designed by 
+					<a href="https://github.com/CyberMagician/ComputationalChemistry/" target="_blank" class="text-blue-400 hover:text-blue-300">&#x2197;CyberMagician</a> (original author) and 
+					<a href="https://wartets.github.io/Wartets/" target="_blank" class="text-blue-400 hover:text-blue-300">&#x2197;Wartets</a> (forker, 
+					<wbr>see more projects on <a href="https://github.com/wartets" target="_blank" class="text-blue-400 hover:text-blue-300">&#x2197;GitHub</a>).
+				</p>
 			</div>
 		</div>
 	</div>
