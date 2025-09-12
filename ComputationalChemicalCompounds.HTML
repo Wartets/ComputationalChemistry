@@ -53,6 +53,10 @@
 					 <p class="text-xs text-gray-500 text-center mt-1">Changes require simulation reset.</p>
 				</div>
 				<div>
+					 <label class="slider-label text-sm text-gray-300 mb-2"><span>Init Box Size</span><span id="boxSizeLabel">4</span></label>
+					 <input type="range" id="boxSizeSlider" min="0.1" max="10" value="4" step="0.1">
+				</div>
+				<div>
 					 <label class="slider-label text-sm text-gray-300 mb-2"><span>Particle Damping</span><span id="particleDampingLabel">0.92</span></label>
 					 <input type="range" id="particleDampingSlider" min="0.8" max="0.99" value="0.92" step="0.01">
 				</div>
@@ -125,6 +129,7 @@ let showBonds = true;
 
 // Default & Customizable Parameters
 let NUM_PARTICLES = 15000;
+let LENGHT = 4;
 let CORE_ELECTRON_COUNT = 200; // Number of particles colored as core electrons (e.g., for Oxygen's 1s2)
 let PARTICLE_DAMPING = 0.92;
 let ATTRACTOR_DAMPING = 0.90;
@@ -1088,95 +1093,6 @@ function checkNH2CONH2Bonding(particlePos) {
     return false;
 }
 
-/*
- * Simulates a simplified quantum wave function.
- * The amplitude decreases with distance and oscillates.
-*/
-function waveFunction(pos, attractor) {
-	const r = pos.distanceTo(attractor.pos);
-	if (r < 0.001) return attractor.amplitude; // Avoid division by zero at the nucleus
-	return attractor.amplitude * Math.cos(QUANTUM_CONSTANT_K * r) / r;
-}
-
-// --- Custom Molecule Logic ---
-function generateCustomAttractorInputs() {
-	const container = document.getElementById('customAttractorInputs');
-	container.innerHTML = ''; // Clear existing inputs
-
-	currentConfig.attractorData.forEach((attractor, index) => {
-		const div = document.createElement('div');
-		div.className = 'grid grid-cols-5 gap-2 items-end p-2 border border-gray-700 rounded-md bg-gray-800';
-		div.innerHTML = `
-			<div class="input-group col-span-1">
-				<label>Name</label>
-				<input type="text" data-index="${index}" data-prop="name" value="${attractor.name}" class="w-full bg-gray-700 border-gray-600 text-white rounded-md p-1 text-xs">
-			</div>
-			<div class="input-group col-span-1">
-				<label>Color</label>
-				<input type="color" data-index="${index}" data-prop="color" value="#${new THREE.Color(attractor.color).getHexString()}" class="w-full h-7 bg-gray-700">
-			</div>
-			<div class="input-group col-span-1">
-				<label>Mass</label>
-				<input type="number" data-index="${index}" data-prop="mass" value="${attractor.mass}" min="1" step="1" class="w-full bg-gray-700 border-gray-600 text-white rounded-md p-1 text-xs">
-			</div>
-			<div class="input-group col-span-1">
-				<label>Radius</label>
-				<input type="number" data-index="${index}" data-prop="radius" value="${attractor.radius}" min="0.01" max="0.5" step="0.01" class="w-full bg-gray-700 border-gray-600 text-white rounded-md p-1 text-xs">
-			</div>
-			<div class="input-group col-span-1 flex items-center justify-center">
-				<label class="flex items-center">
-					<span class="text-xs mr-1">Draggable</span>
-					<input type="checkbox" data-index="${index}" data-prop="draggable" ${attractor.draggable ? 'checked' : ''} class="w-auto h-4">
-				</label>
-			</div>
-			<div class="input-group col-span-5 flex justify-end">
-				<button class="remove-attractor-btn bg-red-600 hover:bg-red-500 text-white text-xs px-3 py-1 rounded transition duration-300" data-index="${index}">Remove</button>
-			</div>
-		`;
-		container.appendChild(div);
-	});
-
-	container.querySelectorAll('input').forEach(input => {
-		input.addEventListener('change', (e) => {
-			const index = parseInt(e.target.dataset.index);
-			const prop = e.target.dataset.prop;
-			let value = e.target.value;
-
-			if (prop === 'color') {
-				value = parseInt(value.replace('#', '0x'), 16);
-			} else if (prop === 'mass' || prop === 'radius') {
-				value = parseFloat(value);
-			} else if (prop === 'draggable') {
-				value = e.target.checked;
-			}
-			currentConfig.attractorData[index][prop] = value;
-			loadMolecule("Custom"); // Reload to apply changes
-		});
-	});
-
-	container.querySelectorAll('.remove-attractor-btn').forEach(btn => {
-		btn.addEventListener('click', (e) => {
-			const index = parseInt(e.target.dataset.index);
-			currentConfig.attractorData.splice(index, 1);
-			currentConfig.initialPositions.splice(index, 1); // Also remove initial position
-			loadMolecule("Custom");
-		});
-	});
-
-	document.getElementById('addAttractorBtn').onclick = () => {
-		currentConfig.attractorData.push({ 
-			name: `Atom${currentConfig.attractorData.length + 1}`, 
-			color: 0xcccccc, mass: 1, amplitude: 1.0, radius: 0.08, coreElectrons: 0, draggable: true 
-		});
-		currentConfig.initialPositions.push(new THREE.Vector3((Math.random()-0.5)*2, (Math.random()-0.5)*2, (Math.random()-0.5)*2));
-		loadMolecule("Custom");
-	};
-	document.getElementById('customLonePairCount').onchange = (e) => {
-		currentConfig.lonePairCount = parseInt(e.target.value);
-		loadMolecule("Custom");
-	};
-}
-
 // --- Specific Molecule Logic (H2O) ---
 function updateH2OLonePairs() {
 	const [o, h1, h2] = attractors; // O, H1, H2 are the first three attractors
@@ -1302,6 +1218,95 @@ function checkNH3Bonding(particlePos, nitrogenAttractor, hydrogenAttractors) {
 		if (proj > 0 && proj < 1 && distSq < bondThresholdSq) return true;
 	}
 	return false;
+}
+
+/*
+ * Simulates a simplified quantum wave function.
+ * The amplitude decreases with distance and oscillates.
+*/
+function waveFunction(pos, attractor) {
+	const r = pos.distanceTo(attractor.pos);
+	if (r < 0.001) return attractor.amplitude; // Avoid division by zero at the nucleus
+	return attractor.amplitude * Math.cos(QUANTUM_CONSTANT_K * r) / r;
+}
+
+// --- Custom Molecule Logic ---
+function generateCustomAttractorInputs() {
+	const container = document.getElementById('customAttractorInputs');
+	container.innerHTML = ''; // Clear existing inputs
+
+	currentConfig.attractorData.forEach((attractor, index) => {
+		const div = document.createElement('div');
+		div.className = 'grid grid-cols-5 gap-2 items-end p-2 border border-gray-700 rounded-md bg-gray-800';
+		div.innerHTML = `
+			<div class="input-group col-span-1">
+				<label>Name</label>
+				<input type="text" data-index="${index}" data-prop="name" value="${attractor.name}" class="w-full bg-gray-700 border-gray-600 text-white rounded-md p-1 text-xs">
+			</div>
+			<div class="input-group col-span-1">
+				<label>Color</label>
+				<input type="color" data-index="${index}" data-prop="color" value="#${new THREE.Color(attractor.color).getHexString()}" class="w-full h-7 bg-gray-700">
+			</div>
+			<div class="input-group col-span-1">
+				<label>Mass</label>
+				<input type="number" data-index="${index}" data-prop="mass" value="${attractor.mass}" min="1" step="1" class="w-full bg-gray-700 border-gray-600 text-white rounded-md p-1 text-xs">
+			</div>
+			<div class="input-group col-span-1">
+				<label>Radius</label>
+				<input type="number" data-index="${index}" data-prop="radius" value="${attractor.radius}" min="0.01" max="0.5" step="0.01" class="w-full bg-gray-700 border-gray-600 text-white rounded-md p-1 text-xs">
+			</div>
+			<div class="input-group col-span-1 flex items-center justify-center">
+				<label class="flex items-center">
+					<span class="text-xs mr-1">Draggable</span>
+					<input type="checkbox" data-index="${index}" data-prop="draggable" ${attractor.draggable ? 'checked' : ''} class="w-auto h-4">
+				</label>
+			</div>
+			<div class="input-group col-span-5 flex justify-end">
+				<button class="remove-attractor-btn bg-red-600 hover:bg-red-500 text-white text-xs px-3 py-1 rounded transition duration-300" data-index="${index}">Remove</button>
+			</div>
+		`;
+		container.appendChild(div);
+	});
+
+	container.querySelectorAll('input').forEach(input => {
+		input.addEventListener('change', (e) => {
+			const index = parseInt(e.target.dataset.index);
+			const prop = e.target.dataset.prop;
+			let value = e.target.value;
+
+			if (prop === 'color') {
+				value = parseInt(value.replace('#', '0x'), 16);
+			} else if (prop === 'mass' || prop === 'radius') {
+				value = parseFloat(value);
+			} else if (prop === 'draggable') {
+				value = e.target.checked;
+			}
+			currentConfig.attractorData[index][prop] = value;
+			loadMolecule("Custom"); // Reload to apply changes
+		});
+	});
+
+	container.querySelectorAll('.remove-attractor-btn').forEach(btn => {
+		btn.addEventListener('click', (e) => {
+			const index = parseInt(e.target.dataset.index);
+			currentConfig.attractorData.splice(index, 1);
+			currentConfig.initialPositions.splice(index, 1); // Also remove initial position
+			loadMolecule("Custom");
+		});
+	});
+
+	document.getElementById('addAttractorBtn').onclick = () => {
+		currentConfig.attractorData.push({ 
+			name: `Atom${currentConfig.attractorData.length + 1}`, 
+			color: 0xcccccc, mass: 1, amplitude: 1.0, radius: 0.08, coreElectrons: 0, draggable: true 
+		});
+		currentConfig.initialPositions.push(new THREE.Vector3((Math.random()-0.5)*2, (Math.random()-0.5)*2, (Math.random()-0.5)*2));
+		loadMolecule("Custom");
+	};
+	document.getElementById('customLonePairCount').onchange = (e) => {
+		currentConfig.lonePairCount = parseInt(e.target.value);
+		loadMolecule("Custom");
+	};
 }
 
 /**
@@ -1448,7 +1453,7 @@ function animate() {
 	
 	// Check if the system has settled (velocities are very low)
 	const totalVelSq = attractors.reduce((sum, a) => sum + a.vel.lengthSq(), 0);
-	if (simulationActive && totalVelSq < 1e-7 && !userIsDragging) {
+	if (simulationActive && totalVelSq < 1e-5 && !userIsDragging) {
 		if (currentConfig.updateAngleDisplay) {
 			currentConfig.updateAngleDisplay();
 		} else {
@@ -1469,6 +1474,7 @@ function setupUI() {
 	
 	// General Controls
 	const particleCountSlider = document.getElementById('particleCountSlider');
+	const boxSizeSlider = document.getElementById('boxSizeSlider');
 	const particleCountLabel = document.getElementById('particleCountLabel');
 	const particleDampingSlider = document.getElementById('particleDampingSlider');
 	const particleDampingLabel = document.getElementById('particleDampingLabel');
@@ -1539,6 +1545,11 @@ function setupUI() {
 	// Sliders for physics parameters
 	particleCountSlider.addEventListener('input', (e) => { particleCountLabel.textContent = e.target.value; });
 	particleCountSlider.addEventListener('change', (e) => { reinitParticles(parseInt(e.target.value)); });
+	
+	boxSizeSlider.addEventListener('input', (e) => { 
+		LENGHT = parseFloat(e.target.value); 
+		boxSizeLabel.textContent = LENGHT.toFixed(1);
+	});
 
 	particleDampingSlider.addEventListener('input', (e) => { 
 		PARTICLE_DAMPING = parseFloat(e.target.value); 
@@ -1599,7 +1610,7 @@ function resetSimulation() {
 	// Randomize particle positions for the electron cloud
 	const posAttr = particleSystem.geometry.getAttribute('position');
 	for (let i = 0; i < NUM_PARTICLES; i++) {
-		posAttr.setXYZ(i, (Math.random()-0.5)*4, (Math.random()-0.5)*4, (Math.random()-0.5)*4);
+		posAttr.setXYZ(i, (Math.random()-0.5)*LENGHT, (Math.random()-0.5)*LENGHT, (Math.random()-0.5)*LENGHT);
 		const ix = i * 3; 
 		velocities[ix] = velocities[ix+1] = velocities[ix+2] = 0; // Reset particle velocities
 	}
