@@ -5,75 +5,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Interactive Molecular Analogy</title>
 	<script src="https://cdn.tailwindcss.com"></script>
-	<style>
-		body { font-family: 'Inter', sans-serif; overflow: hidden; background-color: #000000; color: #e5e7eb; }
-		#container3D { position: fixed; top: 0; left: 0; width: 100%; height: 100%; }
-		.draggable-panel-container { 
-			position: fixed; 
-			top: 5%;
-			right: 1.5rem;
-			transform: none;
-			z-index: 10; 
-			width: 90%; 
-			max-width: 340px;
-			cursor: grab;
-			user-select: none;
-		}
-		.draggable-panel-container.dragging { cursor: grabbing; }
-		#toggleUiBtn { z-index: 11; }
-		.ui-panel { 
-			background-color: rgba(17, 24, 39, 0.75); 
-			backdrop-filter: blur(12px); 
-			border: 1px solid rgba(255, 255, 255, 0.1); 
-			border-radius: 0.75rem; 
-			padding: 1.5rem; 
-			box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2); 
-			transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out; 
-			transform-origin: top center;
-			overflow-y: auto;
-			max-height: 90vh;
-		}
-		.control-container {
-			overflow-y: auto;
-		}
-		.ui-panel.hidden { transform: scale(0.95) translateY(-20px); opacity: 0; pointer-events: none; }
-		#instructions { position: fixed; top: 1.5rem; left: 1.5rem; color: rgba(255,255,255,0.4); font-size: 0.875rem; z-index: 5; pointer-events: none; }
-		.toggle-label, .slider-label { display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
-		.toggle-checkbox { display: none; }
-		.toggle-switch { position: relative; display: inline-block; width: 40px; height: 24px; background-color: #4b5563; border-radius: 9999px; transition: background-color 0.2s; }
-		.toggle-switch::after { content: ''; position: absolute; width: 18px; height: 18px; border-radius: 50%; background-color: white; top: 3px; left: 3px; transition: transform 0.2s; }
-		.toggle-checkbox:checked + .toggle-switch { background-color: #3b82f6; }
-		.toggle-checkbox:checked + .toggle-switch::after { transform: translateX(16px); }
-		input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 8px; background: #4b5563; border-radius: 9999px; outline: none; transition: opacity .2s; }
-		input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; background: #ffffff; cursor: pointer; border-radius: 50%; border: 2px solid #3b82f6;}
-		input[type="range"]::-moz-range-thumb { width: 20px; height: 20px; background: #ffffff; cursor: pointer; border-radius: 50%; border: 2px solid #3b82f6; }
-		.drag-handle { padding: 0.5rem 0; margin-bottom: 0.5rem; text-align: center; }
-		.input-group label { display: block; margin-bottom: 0.25rem; font-size: 0.875rem; color: #cbd5e1; }
-		.input-group input[type="number"], .input-group input[type="color"] {
-			width: 100%;
-			padding: 0.5rem;
-			border-radius: 0.375rem;
-			border: 1px solid #4b5563;
-			background-color: #374151;
-			color: #e5e7eb;
-			font-size: 0.875rem;
-		}
-		.input-group input[type="color"] { height: 2.5rem; padding: 0.25rem; }
-		.ui-panel::-webkit-scrollbar {
-			width: 8px;
-		}
-		.ui-panel::-webkit-scrollbar-track {
-			background: rgba(255, 255, 255, 0.1);
-			border-radius: 4px;
-		}
-		.ui-panel::-webkit-scrollbar-thumb {
-			background: rgba(255, 255, 255, 0.3);
-			border-radius: 4px;
-		}
-		.ui-panel::-webkit-scrollbar-thumb:hover {
-			background: rgba(255, 255, 255, 0.5);
-		}
-	</style>
+	<link rel="stylesheet" href="style.css">
 </head>
 <body>
 	<div id="container3D"></div>
@@ -170,738 +102,738 @@
 
 	<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/" } }</script>
 	<script type="module">
-		import * as THREE from 'three';
-		import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-		import { DragControls } from 'three/addons/controls/DragControls.js';
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { DragControls } from 'three/addons/controls/DragControls.js';
 
-		let scene, camera, renderer, orbitControls, dragControls;
-		let particles, particleSystem, velocities, particleColors;
-		let attractors = [], lonePairs = [];
-		let attractorMeshes = [];
-		let simulationActive = false;
-		let userIsDragging = false;
-		let showBonds = true;
+let scene, camera, renderer, orbitControls, dragControls;
+let particles, particleSystem, velocities, particleColors;
+let attractors = [], lonePairs = [];
+let attractorMeshes = [];
+let simulationActive = false;
+let userIsDragging = false;
+let showBonds = true;
 
-		// Default & Customizable Parameters
-		let NUM_PARTICLES = 15000;
-		let CORE_ELECTRON_COUNT = 200; // Number of particles colored as core electrons (e.g., for Oxygen's 1s2)
-		let PARTICLE_DAMPING = 0.92;
-		let ATTRACTOR_DAMPING = 0.90;
-		let QUANTUM_CONSTANT_K = 5.0; // Controls the 'frequency' of the wave function cosine term
-		let REPULSION_FORCE_MAGNITUDE = 0.0008; // Base repulsion between nuclei/lone pairs
-		let LONE_PAIR_REPULSION_MULTIPLIER = 2.25; // How much stronger lone pairs repel other nuclei
+// Default & Customizable Parameters
+let NUM_PARTICLES = 15000;
+let CORE_ELECTRON_COUNT = 200; // Number of particles colored as core electrons (e.g., for Oxygen's 1s2)
+let PARTICLE_DAMPING = 0.92;
+let ATTRACTOR_DAMPING = 0.90;
+let QUANTUM_CONSTANT_K = 5.0; // Controls the 'frequency' of the wave function cosine term
+let REPULSION_FORCE_MAGNITUDE = 0.0008; // Base repulsion between nuclei/lone pairs
+let LONE_PAIR_REPULSION_MULTIPLIER = 2.25; // How much stronger lone pairs repel other nuclei
 
-		let VALENCE_COLOR = new THREE.Color(0x7df9ff); // Cyan
-		let CORE_COLOR = new THREE.Color(0xff4136); // Red
-		let BOND_COLOR = new THREE.Color(0xfef08a); // Yellow
+let VALENCE_COLOR = new THREE.Color(0x7df9ff); // Cyan
+let CORE_COLOR = new THREE.Color(0xff4136); // Red
+let BOND_COLOR = new THREE.Color(0xfef08a); // Yellow
 
-		// Molecular Configurations
-		const MOLECULE_CONFIGS = {
-			"H2O": {
-				name: "H₂O",
-				attractorData: [
-					{ name: 'O', color: 0xff4136, mass: 16, amplitude: 1.8, radius: 0.1, coreElectrons: 2, draggable: false },
-					{ name: 'H1', color: 0xffffff, mass: 1, amplitude: 1.0, radius: 0.06, coreElectrons: 0, draggable: true },
-					{ name: 'H2', color: 0xffffff, mass: 1, amplitude: 1.0, radius: 0.06, coreElectrons: 0, draggable: true }
-				],
-				lonePairCount: 2,
-				initialPositions: [
-					new THREE.Vector3(0, 0, 0),
-					new THREE.Vector3(0.5, 0.7, 0),
-					new THREE.Vector3(-0.8, -0.4, 0)
-				],
-				// Custom logic for H2O
-				updateLonePairs: updateH2OLonePairs,
-				updateAngleDisplay: updateH2OAngle,
-				checkBonding: checkH2OBonding
-			},
-			"CH4": {
-				name: "CH₄",
-				attractorData: [
-					{ name: 'C', color: 0x808080, mass: 12, amplitude: 2.0, radius: 0.12, coreElectrons: 2, draggable: false },
-					{ name: 'H1', color: 0xffffff, mass: 1, amplitude: 1.0, radius: 0.06, coreElectrons: 0, draggable: true },
-					{ name: 'H2', color: 0xffffff, mass: 1, amplitude: 1.0, radius: 0.06, coreElectrons: 0, draggable: true },
-					{ name: 'H3', color: 0xffffff, mass: 1, amplitude: 1.0, radius: 0.06, coreElectrons: 0, draggable: true },
-					{ name: 'H4', color: 0xffffff, mass: 1, amplitude: 1.0, radius: 0.06, coreElectrons: 0, draggable: true }
-				],
-				lonePairCount: 0,
-				initialPositions: [
-					new THREE.Vector3(0, 0, 0),
-					new THREE.Vector3(0.8, 0.8, 0.8),
-					new THREE.Vector3(-0.8, -0.8, 0.8),
-					new THREE.Vector3(0.8, -0.8, -0.8),
-					new THREE.Vector3(-0.8, 0.8, -0.8)
-				],
-				// Methane has no lone pairs on central carbon, so no custom lone pair update.
-				updateAngleDisplay: updateCH4Angle,
-				checkBonding: checkCH4Bonding
-			},
-			"NH3": {
-				name: "NH₃",
-				attractorData: [
-					{ name: 'N', color: 0x0000ff, mass: 14, amplitude: 2.0, radius: 0.11, coreElectrons: 2, draggable: false },
-					{ name: 'H1', color: 0xffffff, mass: 1, amplitude: 1.0, radius: 0.06, coreElectrons: 0, draggable: true },
-					{ name: 'H2', color: 0xffffff, mass: 1, amplitude: 1.0, radius: 0.06, coreElectrons: 0, draggable: true },
-					{ name: 'H3', color: 0xffffff, mass: 1, amplitude: 1.0, radius: 0.06, coreElectrons: 0, draggable: true }
-				],
-				lonePairCount: 1,
-				initialPositions: [
-					new THREE.Vector3(0, 0, 0),
-					new THREE.Vector3(0.5, 0.5, 0.5),
-					new THREE.Vector3(-0.5, 0.5, -0.5),
-					new THREE.Vector3(0, -0.8, 0.5)
-				],
-				updateLonePairs: updateNH3LonePairs,
-				updateAngleDisplay: updateNH3Angle,
-				checkBonding: checkNH3Bonding
-			},
-			"Custom": {
-				name: "Custom Molecule",
-				attractorData: [], // User defined
-				lonePairCount: 0, // User defined
-				initialPositions: [], // User defined,
-				updateLonePairs: null, // No specific logic for custom
-				updateAngleDisplay: null,
-				checkBonding: null
+// Molecular Configurations
+const MOLECULE_CONFIGS = {
+	"H2O": {
+		name: "H₂O",
+		attractorData: [
+			{ name: 'O', color: 0xff4136, mass: 16, amplitude: 1.8, radius: 0.1, coreElectrons: 2, draggable: false },
+			{ name: 'H1', color: 0xffffff, mass: 1, amplitude: 1.0, radius: 0.06, coreElectrons: 0, draggable: true },
+			{ name: 'H2', color: 0xffffff, mass: 1, amplitude: 1.0, radius: 0.06, coreElectrons: 0, draggable: true }
+		],
+		lonePairCount: 2,
+		initialPositions: [
+			new THREE.Vector3(0, 0, 0),
+			new THREE.Vector3(0.5, 0.7, 0),
+			new THREE.Vector3(-0.8, -0.4, 0)
+		],
+		// Custom logic for H2O
+		updateLonePairs: updateH2OLonePairs,
+		updateAngleDisplay: updateH2OAngle,
+		checkBonding: checkH2OBonding
+	},
+	"CH4": {
+		name: "CH₄",
+		attractorData: [
+			{ name: 'C', color: 0x808080, mass: 12, amplitude: 2.0, radius: 0.12, coreElectrons: 2, draggable: false },
+			{ name: 'H1', color: 0xffffff, mass: 1, amplitude: 1.0, radius: 0.06, coreElectrons: 0, draggable: true },
+			{ name: 'H2', color: 0xffffff, mass: 1, amplitude: 1.0, radius: 0.06, coreElectrons: 0, draggable: true },
+			{ name: 'H3', color: 0xffffff, mass: 1, amplitude: 1.0, radius: 0.06, coreElectrons: 0, draggable: true },
+			{ name: 'H4', color: 0xffffff, mass: 1, amplitude: 1.0, radius: 0.06, coreElectrons: 0, draggable: true }
+		],
+		lonePairCount: 0,
+		initialPositions: [
+			new THREE.Vector3(0, 0, 0),
+			new THREE.Vector3(0.8, 0.8, 0.8),
+			new THREE.Vector3(-0.8, -0.8, 0.8),
+			new THREE.Vector3(0.8, -0.8, -0.8),
+			new THREE.Vector3(-0.8, 0.8, -0.8)
+		],
+		// Methane has no lone pairs on central carbon, so no custom lone pair update.
+		updateAngleDisplay: updateCH4Angle,
+		checkBonding: checkCH4Bonding
+	},
+	"NH3": {
+		name: "NH₃",
+		attractorData: [
+			{ name: 'N', color: 0x0000ff, mass: 14, amplitude: 2.0, radius: 0.11, coreElectrons: 2, draggable: false },
+			{ name: 'H1', color: 0xffffff, mass: 1, amplitude: 1.0, radius: 0.06, coreElectrons: 0, draggable: true },
+			{ name: 'H2', color: 0xffffff, mass: 1, amplitude: 1.0, radius: 0.06, coreElectrons: 0, draggable: true },
+			{ name: 'H3', color: 0xffffff, mass: 1, amplitude: 1.0, radius: 0.06, coreElectrons: 0, draggable: true }
+		],
+		lonePairCount: 1,
+		initialPositions: [
+			new THREE.Vector3(0, 0, 0),
+			new THREE.Vector3(0.5, 0.5, 0.5),
+			new THREE.Vector3(-0.5, 0.5, -0.5),
+			new THREE.Vector3(0, -0.8, 0.5)
+		],
+		updateLonePairs: updateNH3LonePairs,
+		updateAngleDisplay: updateNH3Angle,
+		checkBonding: checkNH3Bonding
+	},
+	"Custom": {
+		name: "Custom Molecule",
+		attractorData: [], // User defined
+		lonePairCount: 0, // User defined
+		initialPositions: [], // User defined,
+		updateLonePairs: null, // No specific logic for custom
+		updateAngleDisplay: null,
+		checkBonding: null
+	}
+};
+let currentMoleculeKey = "H2O";
+let currentConfig = MOLECULE_CONFIGS[currentMoleculeKey];
+
+function init() {
+	scene = new THREE.Scene();
+	camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
+	camera.position.set(0, 1.5, 4);
+
+	renderer = new THREE.WebGLRenderer({ antialias: true });
+	renderer.setSize(window.innerWidth, window.innerHeight);
+	document.getElementById('container3D').appendChild(renderer.domElement);
+
+	orbitControls = new OrbitControls(camera, renderer.domElement);
+	orbitControls.enableDamping = true;
+
+	// Lighting
+	scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+	const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
+	dirLight.position.set(5, 5, 5);
+	scene.add(dirLight);
+	
+	setupUI();
+	loadMolecule(currentMoleculeKey);
+	animate();
+}
+
+function loadMolecule(moleculeKey) {
+	currentMoleculeKey = moleculeKey;
+	currentConfig = MOLECULE_CONFIGS[currentMoleculeKey];
+
+	// Clear previous molecule
+	attractorMeshes.forEach(mesh => scene.remove(mesh));
+	attractors = [];
+	lonePairs = [];
+	attractorMeshes = [];
+	if (particleSystem) {
+		scene.remove(particleSystem);
+		particleSystem.geometry.dispose();
+		particleSystem.material.dispose();
+		particleSystem = null;
+	}
+
+	document.getElementById('moleculeName').textContent = currentConfig.name;
+
+	// Handle Custom Molecule UI
+	const customControls = document.getElementById('customMoleculeControls');
+	if (moleculeKey === "Custom") {
+		customControls.classList.remove('hidden');
+		generateCustomAttractorInputs(); // Generate UI for custom atoms
+	} else {
+		customControls.classList.add('hidden');
+	}
+
+	// Attractors (Nuclei) Setup
+	currentConfig.attractorData.forEach((data, index) => {
+		attractors.push({ 
+			...data, 
+			vel: new THREE.Vector3(),
+			pos: currentConfig.initialPositions[index] ? currentConfig.initialPositions[index].clone() : new THREE.Vector3((Math.random()-0.5)*2, (Math.random()-0.5)*2, (Math.random()-0.5)*2)
+		});
+		const mesh = new THREE.Mesh(
+			new THREE.SphereGeometry(data.radius, 32, 32),
+			new THREE.MeshStandardMaterial({ color: data.color, roughness: 0.5 })
+		);
+		mesh.position.copy(attractors[index].pos);
+		scene.add(mesh);
+		attractorMeshes.push(mesh);
+	});
+	
+	// Lone Pair Pseudo-Attractors
+	for (let i = 0; i < currentConfig.lonePairCount; i++) {
+		lonePairs.push({ pos: new THREE.Vector3(), mass: 0.1, vel: new THREE.Vector3() });
+	}
+
+	// Particle System Setup
+	reinitParticles(NUM_PARTICLES);
+
+	// Drag Controls
+	const draggableObjects = currentConfig.attractorData
+							.map((data, idx) => data.draggable ? attractorMeshes[idx] : null)
+							.filter(mesh => mesh !== null);
+	
+	if (dragControls) dragControls.dispose(); // Clean up old controls
+	dragControls = new DragControls(draggableObjects, camera, renderer.domElement);
+	dragControls.addEventListener('dragstart', () => { userIsDragging = true; orbitControls.enabled = false; });
+	dragControls.addEventListener('dragend', () => { userIsDragging = false; orbitControls.enabled = true; });
+	dragControls.addEventListener('drag', (event) => {
+		 event.object.position.z = 0; // Keep dragged atoms on the XY plane for simplicity
+	});
+	
+	resetSimulation();
+}
+
+function reinitParticles(count) {
+	if (particleSystem) {
+		scene.remove(particleSystem);
+		particleSystem.geometry.dispose();
+		particleSystem.material.dispose();
+	}
+	NUM_PARTICLES = count;
+	const geom = new THREE.BufferGeometry();
+	const positions = new Float32Array(NUM_PARTICLES * 3);
+	velocities = new Float32Array(NUM_PARTICLES * 3);
+	particleColors = new Float32Array(NUM_PARTICLES * 3);
+	
+	for (let i = 0; i < NUM_PARTICLES; i++) {
+		VALENCE_COLOR.toArray(particleColors, i * 3);
+	}
+
+	geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+	geom.setAttribute('color', new THREE.BufferAttribute(particleColors, 3));
+	
+	const material = new THREE.PointsMaterial({ size: 0.005, vertexColors: true, blending: THREE.AdditiveBlending, transparent: true, opacity: 0.65 });
+	particleSystem = new THREE.Points(geom, material);
+	scene.add(particleSystem);
+	resetSimulation(); // Reset positions after reinitialization
+}
+
+/**
+ * Simulates a simplified quantum wave function.
+ * The amplitude decreases with distance and oscillates.
+ */
+function waveFunction(pos, attractor) {
+	const r = pos.distanceTo(attractor.pos);
+	if (r < 0.001) return attractor.amplitude; // Avoid division by zero at the nucleus
+	return attractor.amplitude * Math.cos(QUANTUM_CONSTANT_K * r) / r;
+}
+
+// --- Custom Molecule Logic ---
+function generateCustomAttractorInputs() {
+	const container = document.getElementById('customAttractorInputs');
+	container.innerHTML = ''; // Clear existing inputs
+
+	currentConfig.attractorData.forEach((attractor, index) => {
+		const div = document.createElement('div');
+		div.className = 'grid grid-cols-5 gap-2 items-end p-2 border border-gray-700 rounded-md bg-gray-800';
+		div.innerHTML = `
+			<div class="input-group col-span-1">
+				<label>Name</label>
+				<input type="text" data-index="${index}" data-prop="name" value="${attractor.name}" class="w-full bg-gray-700 border-gray-600 text-white rounded-md p-1 text-xs">
+			</div>
+			<div class="input-group col-span-1">
+				<label>Color</label>
+				<input type="color" data-index="${index}" data-prop="color" value="#${new THREE.Color(attractor.color).getHexString()}" class="w-full h-7 bg-gray-700">
+			</div>
+			<div class="input-group col-span-1">
+				<label>Mass</label>
+				<input type="number" data-index="${index}" data-prop="mass" value="${attractor.mass}" min="1" step="1" class="w-full bg-gray-700 border-gray-600 text-white rounded-md p-1 text-xs">
+			</div>
+			<div class="input-group col-span-1">
+				<label>Radius</label>
+				<input type="number" data-index="${index}" data-prop="radius" value="${attractor.radius}" min="0.01" max="0.5" step="0.01" class="w-full bg-gray-700 border-gray-600 text-white rounded-md p-1 text-xs">
+			</div>
+			<div class="input-group col-span-1 flex items-center justify-center">
+				<label class="flex items-center">
+					<span class="text-xs mr-1">Draggable</span>
+					<input type="checkbox" data-index="${index}" data-prop="draggable" ${attractor.draggable ? 'checked' : ''} class="w-auto h-4">
+				</label>
+			</div>
+			<div class="input-group col-span-5 flex justify-end">
+				<button class="remove-attractor-btn bg-red-600 hover:bg-red-500 text-white text-xs px-3 py-1 rounded transition duration-300" data-index="${index}">Remove</button>
+			</div>
+		`;
+		container.appendChild(div);
+	});
+
+	container.querySelectorAll('input').forEach(input => {
+		input.addEventListener('change', (e) => {
+			const index = parseInt(e.target.dataset.index);
+			const prop = e.target.dataset.prop;
+			let value = e.target.value;
+
+			if (prop === 'color') {
+				value = parseInt(value.replace('#', '0x'), 16);
+			} else if (prop === 'mass' || prop === 'radius') {
+				value = parseFloat(value);
+			} else if (prop === 'draggable') {
+				value = e.target.checked;
 			}
-		};
-		let currentMoleculeKey = "H2O";
-		let currentConfig = MOLECULE_CONFIGS[currentMoleculeKey];
+			currentConfig.attractorData[index][prop] = value;
+			loadMolecule("Custom"); // Reload to apply changes
+		});
+	});
 
-		function init() {
-			scene = new THREE.Scene();
-			camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
-			camera.position.set(0, 1.5, 4);
+	container.querySelectorAll('.remove-attractor-btn').forEach(btn => {
+		btn.addEventListener('click', (e) => {
+			const index = parseInt(e.target.dataset.index);
+			currentConfig.attractorData.splice(index, 1);
+			currentConfig.initialPositions.splice(index, 1); // Also remove initial position
+			loadMolecule("Custom");
+		});
+	});
 
-			renderer = new THREE.WebGLRenderer({ antialias: true });
-			renderer.setSize(window.innerWidth, window.innerHeight);
-			document.getElementById('container3D').appendChild(renderer.domElement);
+	document.getElementById('addAttractorBtn').onclick = () => {
+		currentConfig.attractorData.push({ 
+			name: `Atom${currentConfig.attractorData.length + 1}`, 
+			color: 0xcccccc, mass: 1, amplitude: 1.0, radius: 0.08, coreElectrons: 0, draggable: true 
+		});
+		currentConfig.initialPositions.push(new THREE.Vector3((Math.random()-0.5)*2, (Math.random()-0.5)*2, (Math.random()-0.5)*2));
+		loadMolecule("Custom");
+	};
+	document.getElementById('customLonePairCount').onchange = (e) => {
+		currentConfig.lonePairCount = parseInt(e.target.value);
+		loadMolecule("Custom");
+	};
+}
 
-			orbitControls = new OrbitControls(camera, renderer.domElement);
-			orbitControls.enableDamping = true;
+// --- Specific Molecule Logic (H2O) ---
+function updateH2OLonePairs() {
+	const [o, h1, h2] = attractors; // O, H1, H2 are the first three attractors
+	if (!o || !h1 || !h2) return;
 
-			// Lighting
-			scene.add(new THREE.AmbientLight(0xffffff, 0.5));
-			const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
-			dirLight.position.set(5, 5, 5);
-			scene.add(dirLight);
-			
-			setupUI();
-			loadMolecule(currentMoleculeKey);
-			animate();
-		}
+	// Calculate bond vectors and their bisector
+	const oh1 = new THREE.Vector3().subVectors(h1.pos, o.pos).normalize();
+	const oh2 = new THREE.Vector3().subVectors(h2.pos, o.pos).normalize();
+	const bisector = new THREE.Vector3().addVectors(oh1, oh2).normalize();
+	
+	// Calculate a vector perpendicular to the plane formed by O, H1, H2
+	const cross = new THREE.Vector3().crossVectors(oh1, oh2).normalize();
+	
+	// Position lone pairs tetrahedrally around Oxygen, repelling from existing bonds
+	const lonePairDistance = 0.6; // Distance from Oxygen
+	const lonePairOffset = 0.7; // How far they are from the bisector in the perpendicular direction
+	
+	// Lone pairs are placed relative to the Oxygen, away from the H-O-H plane and bisector
+	lonePairs[0].pos.copy(o.pos).sub(bisector.clone().multiplyScalar(lonePairDistance)).add(cross.clone().multiplyScalar(lonePairOffset));
+	lonePairs[1].pos.copy(o.pos).sub(bisector.clone().multiplyScalar(lonePairDistance)).sub(cross.clone().multiplyScalar(lonePairOffset));
+}
 
-		function loadMolecule(moleculeKey) {
-			currentMoleculeKey = moleculeKey;
-			currentConfig = MOLECULE_CONFIGS[currentMoleculeKey];
+function updateH2OAngle() {
+	const [o, h1, h2] = attractors;
+	if (!o || !h1 || !h2) {
+		document.getElementById('angleDisplay').textContent = '';
+		return;
+	}
+	const v1 = new THREE.Vector3().subVectors(h1.pos, o.pos);
+	const v2 = new THREE.Vector3().subVectors(h2.pos, o.pos);
+	const angleDeg = THREE.MathUtils.radToDeg(v1.angleTo(v2));
+	document.getElementById('angleDisplay').textContent = `H-O-H Angle: ${angleDeg.toFixed(1)}°`;
+}
 
-			// Clear previous molecule
-			attractorMeshes.forEach(mesh => scene.remove(mesh));
-			attractors = [];
-			lonePairs = [];
-			attractorMeshes = [];
-			if (particleSystem) {
-				scene.remove(particleSystem);
-				particleSystem.geometry.dispose();
-				particleSystem.material.dispose();
-				particleSystem = null;
-			}
+function checkH2OBonding(particlePos, oxygenAttractor, hydrogenAttractors) {
+	const [h1, h2] = hydrogenAttractors; 
+	const o = oxygenAttractor;
 
-			document.getElementById('moleculeName').textContent = currentConfig.name;
+	if (!o || !h1 || !h2) return false;
 
-			// Handle Custom Molecule UI
-			const customControls = document.getElementById('customMoleculeControls');
-			if (moleculeKey === "Custom") {
-				customControls.classList.remove('hidden');
-				generateCustomAttractorInputs(); // Generate UI for custom atoms
-			} else {
-				customControls.classList.add('hidden');
-			}
+	const bondThresholdSq = 0.05;
 
-			// Attractors (Nuclei) Setup
-			currentConfig.attractorData.forEach((data, index) => {
-				attractors.push({ 
-					...data, 
-					vel: new THREE.Vector3(),
-					pos: currentConfig.initialPositions[index] ? currentConfig.initialPositions[index].clone() : new THREE.Vector3((Math.random()-0.5)*2, (Math.random()-0.5)*2, (Math.random()-0.5)*2)
-				});
-				const mesh = new THREE.Mesh(
-					new THREE.SphereGeometry(data.radius, 32, 32),
-					new THREE.MeshStandardMaterial({ color: data.color, roughness: 0.5 })
-				);
-				mesh.position.copy(attractors[index].pos);
-				scene.add(mesh);
-				attractorMeshes.push(mesh);
-			});
-			
-			// Lone Pair Pseudo-Attractors
-			for (let i = 0; i < currentConfig.lonePairCount; i++) {
-				lonePairs.push({ pos: new THREE.Vector3(), mass: 0.1, vel: new THREE.Vector3() });
-			}
+	const vec_O_H1 = new THREE.Vector3().subVectors(h1.pos, o.pos);
+	const vec_O_p = new THREE.Vector3().subVectors(particlePos, o.pos);
+	const proj1 = vec_O_p.dot(vec_O_H1) / vec_O_H1.lengthSq();
+	const distSq1 = vec_O_p.clone().addScaledVector(vec_O_H1, -proj1).lengthSq();
+	if (proj1 > 0 && proj1 < 1 && distSq1 < bondThresholdSq) return true;
 
-			// Particle System Setup
-			reinitParticles(NUM_PARTICLES);
+	const vec_O_H2 = new THREE.Vector3().subVectors(h2.pos, o.pos);
+	const proj2 = vec_O_p.dot(vec_O_H2) / vec_O_H2.lengthSq();
+	const distSq2 = vec_O_p.clone().addScaledVector(vec_O_H2, -proj2).lengthSq();
 
-			// Drag Controls
-			const draggableObjects = currentConfig.attractorData
-									.map((data, idx) => data.draggable ? attractorMeshes[idx] : null)
-									.filter(mesh => mesh !== null);
-			
-			if (dragControls) dragControls.dispose(); // Clean up old controls
-			dragControls = new DragControls(draggableObjects, camera, renderer.domElement);
-			dragControls.addEventListener('dragstart', () => { userIsDragging = true; orbitControls.enabled = false; });
-			dragControls.addEventListener('dragend', () => { userIsDragging = false; orbitControls.enabled = true; });
-			dragControls.addEventListener('drag', (event) => {
-				 event.object.position.z = 0; // Keep dragged atoms on the XY plane for simplicity
-			});
-			
-			resetSimulation();
-		}
-		
-		function reinitParticles(count) {
-			if (particleSystem) {
-				scene.remove(particleSystem);
-				particleSystem.geometry.dispose();
-				particleSystem.material.dispose();
-			}
-			NUM_PARTICLES = count;
-			const geom = new THREE.BufferGeometry();
-			const positions = new Float32Array(NUM_PARTICLES * 3);
-			velocities = new Float32Array(NUM_PARTICLES * 3);
-			particleColors = new Float32Array(NUM_PARTICLES * 3);
-			
-			for (let i = 0; i < NUM_PARTICLES; i++) {
-				VALENCE_COLOR.toArray(particleColors, i * 3);
-			}
+	if (proj2 > 0 && proj2 < 1 && distSq2 < bondThresholdSq) return true;
 
-			geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-			geom.setAttribute('color', new THREE.BufferAttribute(particleColors, 3));
-			
-			const material = new THREE.PointsMaterial({ size: 0.005, vertexColors: true, blending: THREE.AdditiveBlending, transparent: true, opacity: 0.65 });
-			particleSystem = new THREE.Points(geom, material);
-			scene.add(particleSystem);
-			resetSimulation(); // Reset positions after reinitialization
-		}
+	return false;
+}
 
-		/**
-		 * Simulates a simplified quantum wave function.
-		 * The amplitude decreases with distance and oscillates.
-		 */
-		function waveFunction(pos, attractor) {
-			const r = pos.distanceTo(attractor.pos);
-			if (r < 0.001) return attractor.amplitude; // Avoid division by zero at the nucleus
-			return attractor.amplitude * Math.cos(QUANTUM_CONSTANT_K * r) / r;
-		}
+// --- Specific Molecule Logic (CH4) ---
+function updateCH4Angle() {
+	const [c, h1, h2] = attractors; // Central Carbon and two Hydrogens
+	if (!c || !h1 || !h2) {
+		document.getElementById('angleDisplay').textContent = '';
+		return;
+	}
+	const v1 = new THREE.Vector3().subVectors(h1.pos, c.pos);
+	const v2 = new THREE.Vector3().subVectors(h2.pos, c.pos);
+	const angleDeg = THREE.MathUtils.radToDeg(v1.angleTo(v2));
+	document.getElementById('angleDisplay').textContent = `H-C-H Angle: ${angleDeg.toFixed(1)}°`;
+}
 
-		// --- Custom Molecule Logic ---
-		function generateCustomAttractorInputs() {
-			const container = document.getElementById('customAttractorInputs');
-			container.innerHTML = ''; // Clear existing inputs
+function checkCH4Bonding(particlePos, carbonAttractor, hydrogenAttractors) {
+	const c = carbonAttractor;
+	if (!c || hydrogenAttractors.length === 0) return false;
 
-			currentConfig.attractorData.forEach((attractor, index) => {
-				const div = document.createElement('div');
-				div.className = 'grid grid-cols-5 gap-2 items-end p-2 border border-gray-700 rounded-md bg-gray-800';
-				div.innerHTML = `
-					<div class="input-group col-span-1">
-						<label>Name</label>
-						<input type="text" data-index="${index}" data-prop="name" value="${attractor.name}" class="w-full bg-gray-700 border-gray-600 text-white rounded-md p-1 text-xs">
-					</div>
-					<div class="input-group col-span-1">
-						<label>Color</label>
-						<input type="color" data-index="${index}" data-prop="color" value="#${new THREE.Color(attractor.color).getHexString()}" class="w-full h-7 bg-gray-700">
-					</div>
-					<div class="input-group col-span-1">
-						<label>Mass</label>
-						<input type="number" data-index="${index}" data-prop="mass" value="${attractor.mass}" min="1" step="1" class="w-full bg-gray-700 border-gray-600 text-white rounded-md p-1 text-xs">
-					</div>
-					<div class="input-group col-span-1">
-						<label>Radius</label>
-						<input type="number" data-index="${index}" data-prop="radius" value="${attractor.radius}" min="0.01" max="0.5" step="0.01" class="w-full bg-gray-700 border-gray-600 text-white rounded-md p-1 text-xs">
-					</div>
-					<div class="input-group col-span-1 flex items-center justify-center">
-						<label class="flex items-center">
-							<span class="text-xs mr-1">Draggable</span>
-							<input type="checkbox" data-index="${index}" data-prop="draggable" ${attractor.draggable ? 'checked' : ''} class="w-auto h-4">
-						</label>
-					</div>
-					<div class="input-group col-span-5 flex justify-end">
-						<button class="remove-attractor-btn bg-red-600 hover:bg-red-500 text-white text-xs px-3 py-1 rounded transition duration-300" data-index="${index}">Remove</button>
-					</div>
-				`;
-				container.appendChild(div);
-			});
+	const bondThresholdSq = 0.05;
 
-			container.querySelectorAll('input').forEach(input => {
-				input.addEventListener('change', (e) => {
-					const index = parseInt(e.target.dataset.index);
-					const prop = e.target.dataset.prop;
-					let value = e.target.value;
+	for (const h of hydrogenAttractors) {
+		const vec_C_H = new THREE.Vector3().subVectors(h.pos, c.pos);
+		const vec_C_p = new THREE.Vector3().subVectors(particlePos, c.pos);
+		const proj = vec_C_p.dot(vec_C_H) / vec_C_H.lengthSq();
+		const distSq = vec_C_p.clone().addScaledVector(vec_C_H, -proj).lengthSq();
+		if (proj > 0 && proj < 1 && distSq < bondThresholdSq) return true;
+	}
+	return false;
+}
 
-					if (prop === 'color') {
-						value = parseInt(value.replace('#', '0x'), 16);
-					} else if (prop === 'mass' || prop === 'radius') {
-						value = parseFloat(value);
-					} else if (prop === 'draggable') {
-						value = e.target.checked;
-					}
-					currentConfig.attractorData[index][prop] = value;
-					loadMolecule("Custom"); // Reload to apply changes
-				});
-			});
+// --- Specific Molecule Logic (NH3) ---
+function updateNH3LonePairs() {
+	const [n, h1, h2, h3] = attractors;
+	if (!n || !h1 || !h2 || !h3) return;
 
-			container.querySelectorAll('.remove-attractor-btn').forEach(btn => {
-				btn.addEventListener('click', (e) => {
-					const index = parseInt(e.target.dataset.index);
-					currentConfig.attractorData.splice(index, 1);
-					currentConfig.initialPositions.splice(index, 1); // Also remove initial position
-					loadMolecule("Custom");
-				});
-			});
+	// Calculate the centroid of the three hydrogen atoms
+	const hCentroid = new THREE.Vector3().addVectors(h1.pos, h2.pos).add(h3.pos).divideScalar(3);
+	// The lone pair is positioned along the axis from the centroid of H atoms through the N atom,
+	// extending away from the H atoms.
+	const lonePairDirection = new THREE.Vector3().subVectors(n.pos, hCentroid).normalize();
+	lonePairs[0].pos.copy(n.pos).add(lonePairDirection.multiplyScalar(0.7)); // Adjust distance as needed
+}
 
-			document.getElementById('addAttractorBtn').onclick = () => {
-				currentConfig.attractorData.push({ 
-					name: `Atom${currentConfig.attractorData.length + 1}`, 
-					color: 0xcccccc, mass: 1, amplitude: 1.0, radius: 0.08, coreElectrons: 0, draggable: true 
-				});
-				currentConfig.initialPositions.push(new THREE.Vector3((Math.random()-0.5)*2, (Math.random()-0.5)*2, (Math.random()-0.5)*2));
-				loadMolecule("Custom");
-			};
-			document.getElementById('customLonePairCount').onchange = (e) => {
-				currentConfig.lonePairCount = parseInt(e.target.value);
-				loadMolecule("Custom");
-			};
-		}
+function updateNH3Angle() {
+	const [n, h1, h2] = attractors; // Take two Hydrogens for the angle
+	if (!n || !h1 || !h2) {
+		document.getElementById('angleDisplay').textContent = '';
+		return;
+	}
+	const v1 = new THREE.Vector3().subVectors(h1.pos, n.pos);
+	const v2 = new THREE.Vector3().subVectors(h2.pos, n.pos);
+	const angleDeg = THREE.MathUtils.radToDeg(v1.angleTo(v2));
+	document.getElementById('angleDisplay').textContent = `H-N-H Angle: ${angleDeg.toFixed(1)}°`;
+}
 
-		// --- Specific Molecule Logic (H2O) ---
-		function updateH2OLonePairs() {
-			const [o, h1, h2] = attractors; // O, H1, H2 are the first three attractors
-			if (!o || !h1 || !h2) return;
+function checkNH3Bonding(particlePos, nitrogenAttractor, hydrogenAttractors) {
+	const n = nitrogenAttractor;
+	if (!n || hydrogenAttractors.length === 0) return false;
 
-			// Calculate bond vectors and their bisector
-			const oh1 = new THREE.Vector3().subVectors(h1.pos, o.pos).normalize();
-			const oh2 = new THREE.Vector3().subVectors(h2.pos, o.pos).normalize();
-			const bisector = new THREE.Vector3().addVectors(oh1, oh2).normalize();
-			
-			// Calculate a vector perpendicular to the plane formed by O, H1, H2
-			const cross = new THREE.Vector3().crossVectors(oh1, oh2).normalize();
-			
-			// Position lone pairs tetrahedrally around Oxygen, repelling from existing bonds
-			const lonePairDistance = 0.6; // Distance from Oxygen
-			const lonePairOffset = 0.7; // How far they are from the bisector in the perpendicular direction
-			
-			// Lone pairs are placed relative to the Oxygen, away from the H-O-H plane and bisector
-			lonePairs[0].pos.copy(o.pos).sub(bisector.clone().multiplyScalar(lonePairDistance)).add(cross.clone().multiplyScalar(lonePairOffset));
-			lonePairs[1].pos.copy(o.pos).sub(bisector.clone().multiplyScalar(lonePairDistance)).sub(cross.clone().multiplyScalar(lonePairOffset));
-		}
+	const bondThresholdSq = 0.05;
 
-		function updateH2OAngle() {
-			const [o, h1, h2] = attractors;
-			if (!o || !h1 || !h2) {
-				document.getElementById('angleDisplay').textContent = '';
-				return;
-			}
-			const v1 = new THREE.Vector3().subVectors(h1.pos, o.pos);
-			const v2 = new THREE.Vector3().subVectors(h2.pos, o.pos);
-			const angleDeg = THREE.MathUtils.radToDeg(v1.angleTo(v2));
-			document.getElementById('angleDisplay').textContent = `H-O-H Angle: ${angleDeg.toFixed(1)}°`;
-		}
-		
-		function checkH2OBonding(particlePos, oxygenAttractor, hydrogenAttractors) {
-			const [h1, h2] = hydrogenAttractors; 
-			const o = oxygenAttractor;
+	for (const h of hydrogenAttractors) {
+		const vec_N_H = new THREE.Vector3().subVectors(h.pos, n.pos);
+		const vec_N_p = new THREE.Vector3().subVectors(particlePos, n.pos);
+		const proj = vec_N_p.dot(vec_N_H) / vec_N_H.lengthSq();
+		const distSq = vec_N_p.clone().addScaledVector(vec_N_H, -proj).lengthSq();
+		if (proj > 0 && proj < 1 && distSq < bondThresholdSq) return true;
+	}
+	return false;
+}
 
-			if (!o || !h1 || !h2) return false;
+/**
+ * Updates the positions and velocities of the attractors (nuclei and lone pairs)
+ * based on a simplified repulsive force model.
+ */
+function updateAttractorPhysics() {
+	if (!simulationActive || userIsDragging) return;
 
-			const bondThresholdSq = 0.05;
+	// Update lone pair positions based on current molecule geometry
+	if (currentConfig.updateLonePairs) {
+		currentConfig.updateLonePairs();
+	}
 
-			const vec_O_H1 = new THREE.Vector3().subVectors(h1.pos, o.pos);
-			const vec_O_p = new THREE.Vector3().subVectors(particlePos, o.pos);
-			const proj1 = vec_O_p.dot(vec_O_H1) / vec_O_H1.lengthSq();
-			const distSq1 = vec_O_p.clone().addScaledVector(vec_O_H1, -proj1).lengthSq();
-			if (proj1 > 0 && proj1 < 1 && distSq1 < bondThresholdSq) return true;
+	const allAtoms = [...attractors, ...lonePairs];
 
-			const vec_O_H2 = new THREE.Vector3().subVectors(h2.pos, o.pos);
-			const proj2 = vec_O_p.dot(vec_O_H2) / vec_O_H2.lengthSq();
-			const distSq2 = vec_O_p.clone().addScaledVector(vec_O_H2, -proj2).lengthSq();
+	// Calculate repulsive forces between all attractors (nuclei and lone pairs)
+	for (let i = 0; i < allAtoms.length; i++) {
+		// Nuclei have a 'mass' property, lone pairs have a fixed pseudo-mass (0.1)
+		const a1 = allAtoms[i];
+		const mass1 = a1.mass || 0.1; 
 
-			if (proj2 > 0 && proj2 < 1 && distSq2 < bondThresholdSq) return true;
+		for (let j = i + 1; j < allAtoms.length; j++) {
+			const a2 = allAtoms[j];
+			const mass2 = a2.mass || 0.1;
 
-			return false;
-		}
+			const direction = new THREE.Vector3().subVectors(a1.pos, a2.pos);
+			const distanceSq = direction.lengthSq();
 
-		// --- Specific Molecule Logic (CH4) ---
-		function updateCH4Angle() {
-			const [c, h1, h2] = attractors; // Central Carbon and two Hydrogens
-			if (!c || !h1 || !h2) {
-				document.getElementById('angleDisplay').textContent = '';
-				return;
-			}
-			const v1 = new THREE.Vector3().subVectors(h1.pos, c.pos);
-			const v2 = new THREE.Vector3().subVectors(h2.pos, c.pos);
-			const angleDeg = THREE.MathUtils.radToDeg(v1.angleTo(v2));
-			document.getElementById('angleDisplay').textContent = `H-C-H Angle: ${angleDeg.toFixed(1)}°`;
-		}
-		
-		function checkCH4Bonding(particlePos, carbonAttractor, hydrogenAttractors) {
-			const c = carbonAttractor;
-			if (!c || hydrogenAttractors.length === 0) return false;
+			if (distanceSq > 1e-4) { // Prevent division by zero if atoms overlap
+				let forceMagnitude = REPULSION_FORCE_MAGNITUDE / distanceSq;
 
-			const bondThresholdSq = 0.05;
-
-			for (const h of hydrogenAttractors) {
-				const vec_C_H = new THREE.Vector3().subVectors(h.pos, c.pos);
-				const vec_C_p = new THREE.Vector3().subVectors(particlePos, c.pos);
-				const proj = vec_C_p.dot(vec_C_H) / vec_C_H.lengthSq();
-				const distSq = vec_C_p.clone().addScaledVector(vec_C_H, -proj).lengthSq();
-				if (proj > 0 && proj < 1 && distSq < bondThresholdSq) return true;
-			}
-			return false;
-		}
-
-		// --- Specific Molecule Logic (NH3) ---
-		function updateNH3LonePairs() {
-			const [n, h1, h2, h3] = attractors;
-			if (!n || !h1 || !h2 || !h3) return;
-
-			// Calculate the centroid of the three hydrogen atoms
-			const hCentroid = new THREE.Vector3().addVectors(h1.pos, h2.pos).add(h3.pos).divideScalar(3);
-			// The lone pair is positioned along the axis from the centroid of H atoms through the N atom,
-			// extending away from the H atoms.
-			const lonePairDirection = new THREE.Vector3().subVectors(n.pos, hCentroid).normalize();
-			lonePairs[0].pos.copy(n.pos).add(lonePairDirection.multiplyScalar(0.7)); // Adjust distance as needed
-		}
-
-		function updateNH3Angle() {
-			const [n, h1, h2] = attractors; // Take two Hydrogens for the angle
-			if (!n || !h1 || !h2) {
-				document.getElementById('angleDisplay').textContent = '';
-				return;
-			}
-			const v1 = new THREE.Vector3().subVectors(h1.pos, n.pos);
-			const v2 = new THREE.Vector3().subVectors(h2.pos, n.pos);
-			const angleDeg = THREE.MathUtils.radToDeg(v1.angleTo(v2));
-			document.getElementById('angleDisplay').textContent = `H-N-H Angle: ${angleDeg.toFixed(1)}°`;
-		}
-
-		function checkNH3Bonding(particlePos, nitrogenAttractor, hydrogenAttractors) {
-			const n = nitrogenAttractor;
-			if (!n || hydrogenAttractors.length === 0) return false;
-
-			const bondThresholdSq = 0.05;
-
-			for (const h of hydrogenAttractors) {
-				const vec_N_H = new THREE.Vector3().subVectors(h.pos, n.pos);
-				const vec_N_p = new THREE.Vector3().subVectors(particlePos, n.pos);
-				const proj = vec_N_p.dot(vec_N_H) / vec_N_H.lengthSq();
-				const distSq = vec_N_p.clone().addScaledVector(vec_N_H, -proj).lengthSq();
-				if (proj > 0 && proj < 1 && distSq < bondThresholdSq) return true;
-			}
-			return false;
-		}
-
-		/**
-		 * Updates the positions and velocities of the attractors (nuclei and lone pairs)
-		 * based on a simplified repulsive force model.
-		 */
-		function updateAttractorPhysics() {
-			if (!simulationActive || userIsDragging) return;
-
-			// Update lone pair positions based on current molecule geometry
-			if (currentConfig.updateLonePairs) {
-				currentConfig.updateLonePairs();
-			}
-
-			const allAtoms = [...attractors, ...lonePairs];
-
-			// Calculate repulsive forces between all attractors (nuclei and lone pairs)
-			for (let i = 0; i < allAtoms.length; i++) {
-				// Nuclei have a 'mass' property, lone pairs have a fixed pseudo-mass (0.1)
-				const a1 = allAtoms[i];
-				const mass1 = a1.mass || 0.1; 
-
-				for (let j = i + 1; j < allAtoms.length; j++) {
-					const a2 = allAtoms[j];
-					const mass2 = a2.mass || 0.1;
-
-					const direction = new THREE.Vector3().subVectors(a1.pos, a2.pos);
-					const distanceSq = direction.lengthSq();
-
-					if (distanceSq > 1e-4) { // Prevent division by zero if atoms overlap
-						let forceMagnitude = REPULSION_FORCE_MAGNITUDE / distanceSq;
-
-						// Apply stronger repulsion for lone pair interactions
-						const isLonePairInteraction = (i >= attractors.length || j >= attractors.length);
-						if (isLonePairInteraction) {
-							forceMagnitude *= LONE_PAIR_REPULSION_MULTIPLIER;
-						}
-
-						const force = direction.normalize().multiplyScalar(forceMagnitude);
-						
-						// Apply force, scaled by mass
-						a1.vel.add(force.clone().divideScalar(mass1));
-						a2.vel.sub(force.clone().divideScalar(mass2));
-					}
+				// Apply stronger repulsion for lone pair interactions
+				const isLonePairInteraction = (i >= attractors.length || j >= attractors.length);
+				if (isLonePairInteraction) {
+					forceMagnitude *= LONE_PAIR_REPULSION_MULTIPLIER;
 				}
-			}
 
-			// Update positions based on velocities and apply damping
-			attractors.forEach(a => { 
-				a.vel.multiplyScalar(ATTRACTOR_DAMPING); 
-				a.pos.add(a.vel); 
-			});
+				const force = direction.normalize().multiplyScalar(forceMagnitude);
+				
+				// Apply force, scaled by mass
+				a1.vel.add(force.clone().divideScalar(mass1));
+				a2.vel.sub(force.clone().divideScalar(mass2));
+			}
 		}
+	}
+
+	// Update positions based on velocities and apply damping
+	attractors.forEach(a => { 
+		a.vel.multiplyScalar(ATTRACTOR_DAMPING); 
+		a.pos.add(a.vel); 
+	});
+}
+
+/**
+ * Updates the positions and velocities of the electron cloud particles.
+ * Particles are attracted to regions of high wave function probability (nuclei).
+ * Colors particles based on core/valence/bonding status.
+ */
+function updateParticlePhysics() {
+	if (!simulationActive) return;
+	const posAttr = particleSystem.geometry.getAttribute('position');
+	const colAttr = particleSystem.geometry.getAttribute('color');
+	const p = new THREE.Vector3();
+	
+	// Assume the first attractor is the central atom for core electrons
+	const centralAttractor = attractors[0];
+	const coreAttractorPresent = centralAttractor && centralAttractor.coreElectrons > 0;
+
+	const hydrogenAttractors = attractors.slice(1); // Assuming H atoms are subsequent attractors
+
+	for (let i = 0; i < NUM_PARTICLES; i++) {
+		p.fromBufferAttribute(posAttr, i);
+		let totalWave = 0;
+		const gradient = new THREE.Vector3();
+		const epsilon = 0.01; // Small displacement for gradient calculation
 		
-		/**
-		 * Updates the positions and velocities of the electron cloud particles.
-		 * Particles are attracted to regions of high wave function probability (nuclei).
-		 * Colors particles based on core/valence/bonding status.
-		 */
-		function updateParticlePhysics() {
-			if (!simulationActive) return;
-			const posAttr = particleSystem.geometry.getAttribute('position');
-			const colAttr = particleSystem.geometry.getAttribute('color');
-			const p = new THREE.Vector3();
-			
-			// Assume the first attractor is the central atom for core electrons
-			const centralAttractor = attractors[0];
-			const coreAttractorPresent = centralAttractor && centralAttractor.coreElectrons > 0;
+		// Sum wave functions from all nuclei to find areas of high probability
+		attractors.forEach(a => {
+			const baseWave = waveFunction(p.clone(), a);
+			totalWave += baseWave;
 
-			const hydrogenAttractors = attractors.slice(1); // Assuming H atoms are subsequent attractors
-
-			for (let i = 0; i < NUM_PARTICLES; i++) {
-				p.fromBufferAttribute(posAttr, i);
-				let totalWave = 0;
-				const gradient = new THREE.Vector3();
-				const epsilon = 0.01; // Small displacement for gradient calculation
-				
-				// Sum wave functions from all nuclei to find areas of high probability
-				attractors.forEach(a => {
-					const baseWave = waveFunction(p.clone(), a);
-					totalWave += baseWave;
-
-					// Approximate gradient of the wave function
-					gradient.x += (waveFunction(p.clone().add({x:epsilon, y:0, z:0}), a) - baseWave) / epsilon;
-					gradient.y += (waveFunction(p.clone().add({x:0, y:epsilon, z:0}), a) - baseWave) / epsilon;
-					gradient.z += (waveFunction(p.clone().add({x:0, y:0, z:epsilon}), a) - baseWave) / epsilon;
-				});
-				
-				// Force derived from the gradient of the wave function,
-				// pushes particles towards regions of higher probability (maxima of totalWave).
-				let forceMultiplier = -0.003 * Math.tanh(totalWave); // Tanh smooths the force
-				
-				// --- Particle Coloring Logic ---
-				let currentColor = VALENCE_COLOR; // Default to valence color
-
-				// Core electrons (particles near the central nucleus, if configured)
-				if (coreAttractorPresent && i < CORE_ELECTRON_COUNT && p.distanceToSquared(centralAttractor.pos) < 0.5) { 
-					currentColor = CORE_COLOR;
-					// Stronger attraction for core electrons to keep them close to the nucleus
-					forceMultiplier *= (1 + 20 / (p.distanceToSquared(centralAttractor.pos) + 0.1));
-				} else {
-					// Valence electron logic (bonding)
-					if (showBonds && currentConfig.checkBonding && currentConfig.checkBonding(p, centralAttractor, hydrogenAttractors)) {
-						 currentColor = BOND_COLOR;
-					}
-				}
-				currentColor.toArray(particleColors, i * 3);
-				
-				const ix = i * 3;
-				// Apply force to velocity
-				velocities[ix] += gradient.x * forceMultiplier;
-				velocities[ix+1] += gradient.y * forceMultiplier;
-				velocities[ix+2] += gradient.z * forceMultiplier;
-
-				// Apply damping to particle velocities
-				velocities[ix] *= PARTICLE_DAMPING;
-				velocities[ix+1] *= PARTICLE_DAMPING;
-				velocities[ix+2] *= PARTICLE_DAMPING;
-
-				// Update particle position
-				posAttr.setXYZ(i, p.x + velocities[ix], p.y + velocities[ix+1], p.z + velocities[ix+2]);
-			}
-			posAttr.needsUpdate = true;
-			colAttr.needsUpdate = true;
-		}
-
-		function animate() {
-			requestAnimationFrame(animate);
-
-			// Sync attractor data with mesh positions, especially after user drag
-			if (userIsDragging) {
-				currentConfig.attractorData.forEach((data, idx) => {
-					if (data.draggable) {
-						attractors[idx].pos.copy(attractorMeshes[idx].position);
-						attractors[idx].vel.set(0,0,0); // Stop movement while dragging
-					}
-				});
-			}
-
-			updateAttractorPhysics();
-			// Update the visual mesh positions to match the simulation's attractor positions
-			attractors.forEach((a, i) => attractorMeshes[i].position.copy(a.pos));
-			updateParticlePhysics();
-			
-			// Check if the system has settled (velocities are very low)
-			const totalVelSq = attractors.reduce((sum, a) => sum + a.vel.lengthSq(), 0);
-			if (simulationActive && totalVelSq < 1e-7 && !userIsDragging) {
-				if (currentConfig.updateAngleDisplay) {
-					currentConfig.updateAngleDisplay();
-				} else {
-					document.getElementById('angleDisplay').textContent = 'System stable.';
-				}
-			} else if (simulationActive) {
-				document.getElementById('angleDisplay').textContent = 'System settling...';
-			}
-
-			orbitControls.update();
-			renderer.render(scene, camera);
-		}
-
-		function setupUI() {
-			const draggablePanelContainer = document.getElementById('draggable-panel-container');
-			const dragHandle = document.getElementById('drag-handle');
-			const uiPanel = document.getElementById('ui-panel'), toggleUiBtn = document.getElementById('toggleUiBtn'), uiIcon = document.getElementById('ui-icon');
-			
-			// General Controls
-			const particleCountSlider = document.getElementById('particleCountSlider');
-			const particleCountLabel = document.getElementById('particleCountLabel');
-			const particleDampingSlider = document.getElementById('particleDampingSlider');
-			const particleDampingLabel = document.getElementById('particleDampingLabel');
-			const attractorDampingSlider = document.getElementById('attractorDampingSlider');
-			const attractorDampingLabel = document.getElementById('attractorDampingLabel');
-			const quantumConstantSlider = document.getElementById('quantumConstantSlider');
-			const quantumConstantLabel = document.getElementById('quantumConstantLabel');
-			const repulsionForceSlider = document.getElementById('repulsionForceSlider');
-			const repulsionForceLabel = document.getElementById('repulsionForceLabel');
-			const lpRepulsionMultiplierSlider = document.getElementById('lpRepulsionMultiplierSlider');
-			const lpRepulsionMultiplierLabel = document.getElementById('lpRepulsionMultiplierLabel');
-			const coreElectronCountSlider = document.getElementById('coreElectronCountSlider');
-			const coreElectronCountLabel = document.getElementById('coreElectronCountLabel');
-
-
-			// Color Pickers
-			const valenceColorPicker = document.getElementById('valenceColorPicker');
-			const coreColorPicker = document.getElementById('coreColorPicker');
-			const bondColorPicker = document.getElementById('bondColorPicker');
-
-			let isDraggingPanel = false;
-			let offset = { x: 0, y: 0 };
-
-			dragHandle.addEventListener('mousedown', (e) => {
-				isDraggingPanel = true;
-				draggablePanelContainer.classList.add('dragging');
-				offset.x = e.clientX - draggablePanelContainer.getBoundingClientRect().left;
-				offset.y = e.clientY - draggablePanelContainer.getBoundingClientRect().top;
-				draggablePanelContainer.style.transform = 'none'; // Remove center transform for absolute positioning
-				draggablePanelContainer.style.left = `${e.clientX - offset.x}px`;
-				draggablePanelContainer.style.top = `${e.clientY - offset.y}px`;
-				orbitControls.enabled = false;
-			});
-
-			document.addEventListener('mousemove', (e) => {
-				if (!isDraggingPanel) return;
-				draggablePanelContainer.style.left = `${e.clientX - offset.x}px`;
-				draggablePanelContainer.style.top = `${e.clientY - offset.y}px`;
-			});
-
-			document.addEventListener('mouseup', () => {
-				isDraggingPanel = false;
-				draggablePanelContainer.classList.remove('dragging');
-				orbitControls.enabled = true;
-			});
-
-			document.getElementById('formBtn').addEventListener('click', () => { 
-				if (!simulationActive) { 
-					resetSimulation(); // Reset to initial state
-					simulationActive = true; 
-				} 
-			});
-			document.getElementById('resetBtn').addEventListener('click', resetSimulation);
-			
-			toggleUiBtn.addEventListener('click', () => {
-				const isHidden = uiPanel.classList.toggle('hidden');
-				uiIcon.innerHTML = isHidden ? `<path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" />` : `<path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />`;
-				toggleUiBtn.style.opacity = isHidden ? '0.5' : '1';
-			});
-
-			document.getElementById('showNucleiToggle').addEventListener('change', (e) => { 
-				attractorMeshes.forEach(mesh => mesh.visible = e.target.checked); 
-			});
-			document.getElementById('showBondsToggle').addEventListener('change', (e) => { 
-				showBonds = e.target.checked; 
-			});
-
-			// Sliders for physics parameters
-			particleCountSlider.addEventListener('input', (e) => { particleCountLabel.textContent = e.target.value; });
-			particleCountSlider.addEventListener('change', (e) => { reinitParticles(parseInt(e.target.value)); });
-
-			particleDampingSlider.addEventListener('input', (e) => { 
-				PARTICLE_DAMPING = parseFloat(e.target.value); 
-				particleDampingLabel.textContent = PARTICLE_DAMPING.toFixed(2);
-			});
-			attractorDampingSlider.addEventListener('input', (e) => { 
-				ATTRACTOR_DAMPING = parseFloat(e.target.value); 
-				attractorDampingLabel.textContent = ATTRACTOR_DAMPING.toFixed(2);
-			});
-			quantumConstantSlider.addEventListener('input', (e) => { 
-				QUANTUM_CONSTANT_K = parseFloat(e.target.value); 
-				quantumConstantLabel.textContent = QUANTUM_CONSTANT_K.toFixed(1);
-			});
-			repulsionForceSlider.addEventListener('input', (e) => { 
-				REPULSION_FORCE_MAGNITUDE = parseFloat(e.target.value); 
-				repulsionForceLabel.textContent = REPULSION_FORCE_MAGNITUDE.toFixed(4);
-			});
-			lpRepulsionMultiplierSlider.addEventListener('input', (e) => { 
-				LONE_PAIR_REPULSION_MULTIPLIER = parseFloat(e.target.value); 
-				lpRepulsionMultiplierLabel.textContent = LONE_PAIR_REPULSION_MULTIPLIER.toFixed(2);
-			});
-			coreElectronCountSlider.addEventListener('input', (e) => { 
-				CORE_ELECTRON_COUNT = parseInt(e.target.value); 
-				coreElectronCountLabel.textContent = CORE_ELECTRON_COUNT;
-			});
-
-
-			// Color pickers
-			valenceColorPicker.addEventListener('change', (e) => { VALENCE_COLOR.set(e.target.value); });
-			coreColorPicker.addEventListener('change', (e) => { CORE_COLOR.set(e.target.value); });
-			bondColorPicker.addEventListener('change', (e) => { BOND_COLOR.set(e.target.value); });
-
-
-			const moleculeSelector = document.getElementById('moleculeSelector');
-			moleculeSelector.addEventListener('change', (e) => {
-				loadMolecule(e.target.value);
-			});
-		}
+			// Approximate gradient of the wave function
+			gradient.x += (waveFunction(p.clone().add({x:epsilon, y:0, z:0}), a) - baseWave) / epsilon;
+			gradient.y += (waveFunction(p.clone().add({x:0, y:epsilon, z:0}), a) - baseWave) / epsilon;
+			gradient.z += (waveFunction(p.clone().add({x:0, y:0, z:epsilon}), a) - baseWave) / epsilon;
+		});
 		
-		/**
-		 * Resets the simulation to its initial state:
-		 * - Deactivates simulation, clears angle display.
-		 * - Resets nuclei positions to their initial configuration and clears their velocities.
-		 * - Randomizes electron particle positions and clears their velocities.
-		 */
-		function resetSimulation() {
-			simulationActive = false;
-			document.getElementById('angleDisplay').textContent = '';
-			
-			currentConfig.attractorData.forEach((_, i) => {
-				// Use a clone to ensure original initialPositions are not modified
-				attractors[i].pos.copy(currentConfig.initialPositions[i].clone()); 
-				attractors[i].vel.set(0,0,0);
-			});
-			// Sync visual meshes with reset positions
-			attractors.forEach((a, i) => attractorMeshes[i].position.copy(a.pos));
+		// Force derived from the gradient of the wave function,
+		// pushes particles towards regions of higher probability (maxima of totalWave).
+		let forceMultiplier = -0.003 * Math.tanh(totalWave); // Tanh smooths the force
+		
+		// --- Particle Coloring Logic ---
+		let currentColor = VALENCE_COLOR; // Default to valence color
 
-			// Randomize particle positions for the electron cloud
-			const posAttr = particleSystem.geometry.getAttribute('position');
-			for (let i = 0; i < NUM_PARTICLES; i++) {
-				posAttr.setXYZ(i, (Math.random()-0.5)*4, (Math.random()-0.5)*4, (Math.random()-0.5)*4);
-				const ix = i * 3; 
-				velocities[ix] = velocities[ix+1] = velocities[ix+2] = 0; // Reset particle velocities
+		// Core electrons (particles near the central nucleus, if configured)
+		if (coreAttractorPresent && i < CORE_ELECTRON_COUNT && p.distanceToSquared(centralAttractor.pos) < 0.5) { 
+			currentColor = CORE_COLOR;
+			// Stronger attraction for core electrons to keep them close to the nucleus
+			forceMultiplier *= (1 + 20 / (p.distanceToSquared(centralAttractor.pos) + 0.1));
+		} else {
+			// Valence electron logic (bonding)
+			if (showBonds && currentConfig.checkBonding && currentConfig.checkBonding(p, centralAttractor, hydrogenAttractors)) {
+				 currentColor = BOND_COLOR;
 			}
-			posAttr.needsUpdate = true;
 		}
+		currentColor.toArray(particleColors, i * 3);
+		
+		const ix = i * 3;
+		// Apply force to velocity
+		velocities[ix] += gradient.x * forceMultiplier;
+		velocities[ix+1] += gradient.y * forceMultiplier;
+		velocities[ix+2] += gradient.z * forceMultiplier;
 
-		init();
+		// Apply damping to particle velocities
+		velocities[ix] *= PARTICLE_DAMPING;
+		velocities[ix+1] *= PARTICLE_DAMPING;
+		velocities[ix+2] *= PARTICLE_DAMPING;
+
+		// Update particle position
+		posAttr.setXYZ(i, p.x + velocities[ix], p.y + velocities[ix+1], p.z + velocities[ix+2]);
+	}
+	posAttr.needsUpdate = true;
+	colAttr.needsUpdate = true;
+}
+
+function animate() {
+	requestAnimationFrame(animate);
+
+	// Sync attractor data with mesh positions, especially after user drag
+	if (userIsDragging) {
+		currentConfig.attractorData.forEach((data, idx) => {
+			if (data.draggable) {
+				attractors[idx].pos.copy(attractorMeshes[idx].position);
+				attractors[idx].vel.set(0,0,0); // Stop movement while dragging
+			}
+		});
+	}
+
+	updateAttractorPhysics();
+	// Update the visual mesh positions to match the simulation's attractor positions
+	attractors.forEach((a, i) => attractorMeshes[i].position.copy(a.pos));
+	updateParticlePhysics();
+	
+	// Check if the system has settled (velocities are very low)
+	const totalVelSq = attractors.reduce((sum, a) => sum + a.vel.lengthSq(), 0);
+	if (simulationActive && totalVelSq < 1e-7 && !userIsDragging) {
+		if (currentConfig.updateAngleDisplay) {
+			currentConfig.updateAngleDisplay();
+		} else {
+			document.getElementById('angleDisplay').textContent = 'System stable.';
+		}
+	} else if (simulationActive) {
+		document.getElementById('angleDisplay').textContent = 'System settling...';
+	}
+
+	orbitControls.update();
+	renderer.render(scene, camera);
+}
+
+function setupUI() {
+	const draggablePanelContainer = document.getElementById('draggable-panel-container');
+	const dragHandle = document.getElementById('drag-handle');
+	const uiPanel = document.getElementById('ui-panel'), toggleUiBtn = document.getElementById('toggleUiBtn'), uiIcon = document.getElementById('ui-icon');
+	
+	// General Controls
+	const particleCountSlider = document.getElementById('particleCountSlider');
+	const particleCountLabel = document.getElementById('particleCountLabel');
+	const particleDampingSlider = document.getElementById('particleDampingSlider');
+	const particleDampingLabel = document.getElementById('particleDampingLabel');
+	const attractorDampingSlider = document.getElementById('attractorDampingSlider');
+	const attractorDampingLabel = document.getElementById('attractorDampingLabel');
+	const quantumConstantSlider = document.getElementById('quantumConstantSlider');
+	const quantumConstantLabel = document.getElementById('quantumConstantLabel');
+	const repulsionForceSlider = document.getElementById('repulsionForceSlider');
+	const repulsionForceLabel = document.getElementById('repulsionForceLabel');
+	const lpRepulsionMultiplierSlider = document.getElementById('lpRepulsionMultiplierSlider');
+	const lpRepulsionMultiplierLabel = document.getElementById('lpRepulsionMultiplierLabel');
+	const coreElectronCountSlider = document.getElementById('coreElectronCountSlider');
+	const coreElectronCountLabel = document.getElementById('coreElectronCountLabel');
+
+
+	// Color Pickers
+	const valenceColorPicker = document.getElementById('valenceColorPicker');
+	const coreColorPicker = document.getElementById('coreColorPicker');
+	const bondColorPicker = document.getElementById('bondColorPicker');
+
+	let isDraggingPanel = false;
+	let offset = { x: 0, y: 0 };
+
+	dragHandle.addEventListener('mousedown', (e) => {
+		isDraggingPanel = true;
+		draggablePanelContainer.classList.add('dragging');
+		offset.x = e.clientX - draggablePanelContainer.getBoundingClientRect().left;
+		offset.y = e.clientY - draggablePanelContainer.getBoundingClientRect().top;
+		draggablePanelContainer.style.transform = 'none'; // Remove center transform for absolute positioning
+		draggablePanelContainer.style.left = `${e.clientX - offset.x}px`;
+		draggablePanelContainer.style.top = `${e.clientY - offset.y}px`;
+		orbitControls.enabled = false;
+	});
+
+	document.addEventListener('mousemove', (e) => {
+		if (!isDraggingPanel) return;
+		draggablePanelContainer.style.left = `${e.clientX - offset.x}px`;
+		draggablePanelContainer.style.top = `${e.clientY - offset.y}px`;
+	});
+
+	document.addEventListener('mouseup', () => {
+		isDraggingPanel = false;
+		draggablePanelContainer.classList.remove('dragging');
+		orbitControls.enabled = true;
+	});
+
+	document.getElementById('formBtn').addEventListener('click', () => { 
+		if (!simulationActive) { 
+			resetSimulation(); // Reset to initial state
+			simulationActive = true; 
+		} 
+	});
+	document.getElementById('resetBtn').addEventListener('click', resetSimulation);
+	
+	toggleUiBtn.addEventListener('click', () => {
+		const isHidden = uiPanel.classList.toggle('hidden');
+		uiIcon.innerHTML = isHidden ? `<path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" />` : `<path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />`;
+		toggleUiBtn.style.opacity = isHidden ? '0.5' : '1';
+	});
+
+	document.getElementById('showNucleiToggle').addEventListener('change', (e) => { 
+		attractorMeshes.forEach(mesh => mesh.visible = e.target.checked); 
+	});
+	document.getElementById('showBondsToggle').addEventListener('change', (e) => { 
+		showBonds = e.target.checked; 
+	});
+
+	// Sliders for physics parameters
+	particleCountSlider.addEventListener('input', (e) => { particleCountLabel.textContent = e.target.value; });
+	particleCountSlider.addEventListener('change', (e) => { reinitParticles(parseInt(e.target.value)); });
+
+	particleDampingSlider.addEventListener('input', (e) => { 
+		PARTICLE_DAMPING = parseFloat(e.target.value); 
+		particleDampingLabel.textContent = PARTICLE_DAMPING.toFixed(2);
+	});
+	attractorDampingSlider.addEventListener('input', (e) => { 
+		ATTRACTOR_DAMPING = parseFloat(e.target.value); 
+		attractorDampingLabel.textContent = ATTRACTOR_DAMPING.toFixed(2);
+	});
+	quantumConstantSlider.addEventListener('input', (e) => { 
+		QUANTUM_CONSTANT_K = parseFloat(e.target.value); 
+		quantumConstantLabel.textContent = QUANTUM_CONSTANT_K.toFixed(1);
+	});
+	repulsionForceSlider.addEventListener('input', (e) => { 
+		REPULSION_FORCE_MAGNITUDE = parseFloat(e.target.value); 
+		repulsionForceLabel.textContent = REPULSION_FORCE_MAGNITUDE.toFixed(4);
+	});
+	lpRepulsionMultiplierSlider.addEventListener('input', (e) => { 
+		LONE_PAIR_REPULSION_MULTIPLIER = parseFloat(e.target.value); 
+		lpRepulsionMultiplierLabel.textContent = LONE_PAIR_REPULSION_MULTIPLIER.toFixed(2);
+	});
+	coreElectronCountSlider.addEventListener('input', (e) => { 
+		CORE_ELECTRON_COUNT = parseInt(e.target.value); 
+		coreElectronCountLabel.textContent = CORE_ELECTRON_COUNT;
+	});
+
+
+	// Color pickers
+	valenceColorPicker.addEventListener('change', (e) => { VALENCE_COLOR.set(e.target.value); });
+	coreColorPicker.addEventListener('change', (e) => { CORE_COLOR.set(e.target.value); });
+	bondColorPicker.addEventListener('change', (e) => { BOND_COLOR.set(e.target.value); });
+
+
+	const moleculeSelector = document.getElementById('moleculeSelector');
+	moleculeSelector.addEventListener('change', (e) => {
+		loadMolecule(e.target.value);
+	});
+}
+
+/**
+ * Resets the simulation to its initial state:
+ * - Deactivates simulation, clears angle display.
+ * - Resets nuclei positions to their initial configuration and clears their velocities.
+ * - Randomizes electron particle positions and clears their velocities.
+ */
+function resetSimulation() {
+	simulationActive = false;
+	document.getElementById('angleDisplay').textContent = '';
+	
+	currentConfig.attractorData.forEach((_, i) => {
+		// Use a clone to ensure original initialPositions are not modified
+		attractors[i].pos.copy(currentConfig.initialPositions[i].clone()); 
+		attractors[i].vel.set(0,0,0);
+	});
+	// Sync visual meshes with reset positions
+	attractors.forEach((a, i) => attractorMeshes[i].position.copy(a.pos));
+
+	// Randomize particle positions for the electron cloud
+	const posAttr = particleSystem.geometry.getAttribute('position');
+	for (let i = 0; i < NUM_PARTICLES; i++) {
+		posAttr.setXYZ(i, (Math.random()-0.5)*4, (Math.random()-0.5)*4, (Math.random()-0.5)*4);
+		const ix = i * 3; 
+		velocities[ix] = velocities[ix+1] = velocities[ix+2] = 0; // Reset particle velocities
+	}
+	posAttr.needsUpdate = true;
+}
+
+window.addEventListener('load', init);
 	</script>
 </body>
 </html>
