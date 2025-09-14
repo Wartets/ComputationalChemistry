@@ -49,40 +49,40 @@
 				<label class="toggle-label text-sm text-gray-300"><span>Visualize Bonds</span><input type="checkbox" id="showBondsToggle" class="toggle-checkbox" checked><span class="toggle-switch"></span></label>
 				<div>
 					 <label class="slider-label text-sm text-gray-300 mb-2"><span>Particle Density</span><span id="particleCountLabel">15000</span></label>
-					 <input type="range" id="particleCountSlider" min="1000" max="30000" value="15000" step="1000">
+					 <input type="range" id="particleCountSlider" min="1000" max="100000" value="15000" step="1000">
 				</div>
 				<div>
 					 <label class="slider-label text-sm text-gray-300 mb-2"><span>Init Box Size</span><span id="boxSizeLabel">4</span></label>
-					 <input type="range" id="boxSizeSlider" min="0.1" max="10" value="4" step="0.1">
+					 <input type="range" id="boxSizeSlider" min="0.1" max="20" value="4" step="0.1">
 				</div>
 				<div>
 					 <label class="slider-label text-sm text-gray-300 mb-2"><span>Particle Damping</span><span id="particleDampingLabel">0.92</span></label>
-					 <input type="range" id="particleDampingSlider" min="0.8" max="0.99" value="0.92" step="0.01">
+					 <input type="range" id="particleDampingSlider" min="0" max="0.99" value="0.92" step="0.01">
 					 <p class="text-xs text-gray-500 text-center mt-1">Changes require simulation reset.</p>
 				</div>
 				<div>
 					 <label class="slider-label text-sm text-gray-300 mb-2"><span>Attractor Damping</span><span id="attractorDampingLabel">0.90</span></label>
-					 <input type="range" id="attractorDampingSlider" min="0.8" max="0.99" value="0.90" step="0.01">
+					 <input type="range" id="attractorDampingSlider" min="0" max="0.99" value="0.90" step="0.01">
 					 <p class="text-xs text-gray-500 text-center mt-1">Changes require simulation reset.</p>
 				</div>
 				<div>
 					<label class="slider-label text-sm text-gray-300 mb-2"><span>Quantum Constant (k)</span><span id="quantumConstantLabel">5.0</span></label>
-					<input type="range" id="quantumConstantSlider" min="1.0" max="10.0" value="5.0" step="0.1">
+					<input type="range" id="quantumConstantSlider" min="0.1" max="10.0" value="5.0" step="0.1">
 					 <p class="text-xs text-gray-500 text-center mt-1">Changes require simulation reset.</p>
 				</div>
 				<div>
 					<label class="slider-label text-sm text-gray-300 mb-2"><span>Repulsion Force</span><span id="repulsionForceLabel">0.0008</span></label>
-					<input type="range" id="repulsionForceSlider" min="0.0001" max="0.005" value="0.0008" step="0.0001">
+					<input type="range" id="repulsionForceSlider" min="0.00001" max="0.01" value="0.0008" step="0.00001">
 					 <p class="text-xs text-gray-500 text-center mt-1">Changes require simulation reset.</p>
 				</div>
 				<div>
 					<label class="slider-label text-sm text-gray-300 mb-2"><span>Lone Pair Repulsion Multiplier</span><span id="lpRepulsionMultiplierLabel">2.25</span></label>
-					<input type="range" id="lpRepulsionMultiplierSlider" min="1.0" max="5.0" value="2.25" step="0.05">
+					<input type="range" id="lpRepulsionMultiplierSlider" min="0.5" max="5.0" value="2.25" step="0.05">
 					 <p class="text-xs text-gray-500 text-center mt-1">Changes require simulation reset.</p>
 				</div>
 				<div>
 					<label class="slider-label text-sm text-gray-300 mb-2"><span>Core Electron Count (O-atom)</span><span id="coreElectronCountLabel">200</span></label>
-					<input type="range" id="coreElectronCountSlider" min="0" max="1000" value="200" step="10">
+					<input type="range" id="coreElectronCountSlider" min="0" max="10000" value="200" step="10">
 					<p class="text-xs text-gray-500 text-center mt-1">Affects number of red particles.</p>
 				</div>
 				
